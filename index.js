@@ -117,26 +117,34 @@ const assembly = function () {
       for adding and deleting crew.
   */
   const mission = { crew: [] };
-    return {
-      add: (partName, partId) => mission[partName] = partId,
-      delete: (partName) => delete mission[partName],
-      show: () => mission,
-      addCrew: (newCrew) => mission.crew.push(newCrew),
-      deleteCrew: (oldCrew) => mission.crew = mission.crew.filter(item => item != oldCrew)
-    }
+  return {
+    add: (partName, partId) => mission[partName] = partId,
+    delete: (partName) => delete mission[partName],
+    show: () => mission,
+    addCrew: (newCrew) => mission.crew.push(newCrew),
+    deleteCrew: (oldCrew) => mission.crew = mission.crew.filter(item => item != oldCrew)
+  }
 }();
 
-const priorLaunch = function () {
+const configurator = function () {
   /*
-    priorLaunch() checks mission parts against prior launches to avoid invalid parts
+    configurator() filters mission parts so user-interface lists  
+      rockets, boosters, etc. that appear practical for assembling a mission.  
+    I originally thought that it would be sufficient to select parts that were
+      used on prior missions, but after further reserch more filter critera
+      were needed.
   */
   const priorLaunches = [];
   return {
-    push: (launch) => priorLaunches.push(launch), 
-    rocket: (missionPart) => 
-      priorLaunches.find(launch => launch.rocket === missionPart),
-    core: (missionPart) => priorLaunches.find(launch => launch.coreId === missionPart),
-    capsule: (missionPart) => priorLaunches.find(launch => launch.capsule === missionPart)
+    push: (launch) => priorLaunches.push(launch),
+    rocket: (collection) => collection.filter((item) => item.name != "Falcon 1"),
+    core: (collection) => {
+      return collection.filter((item) => {
+          return (item.status === "unknown" || item.status === "active")
+            && priorLaunches.find(launch => item.id === launch.coreId)
+        });
+    },
+    capsule: (collection) => collection.filter((item) => item.status === "active" && parseInt(item.water_landings, 10) > 0)
   }
 }();
 
@@ -163,7 +171,7 @@ const initPriorLaunches = (launches) => {
         prior.coreFlightNumber = launch.cores[0].flight;
         prior.coreReusedFlag = launch.cores[0].reused;
       }
-      priorLaunch.push(prior);
+      configurator.push(prior);
     }
   }
 }
@@ -171,19 +179,15 @@ const initPriorLaunches = (launches) => {
 const renderCores = (cores) => {
   const tableBody = document.querySelector("#cores-body");
   tableBody.innerHTML = "";
-  cores.forEach(core => {
-    if (priorLaunch.core(core.id) && parseInt(core.asds_landings, 10) > 1) {
-      renderCore(core, tableBody.insertRow());
-    }
-  })
+  cores.forEach(core => renderCore(core, tableBody.insertRow()));
 }
 
- // serial, flown, landed, note
+// serial, flown, landed, note
 const renderCore = (item, row) => {
   row.innerHTML = `<td>${item.serial}</td>`
     + `<td>${item.reuse_count}</td>`
-    + `<td>${item.asds_landings}</td>`
-    + `<td>${item.last_update}</td>`;
+    + `<td>${item.asds_landings}</td>`;
+    // + `<td>${item.last_update}</td>`;
   row.dataset.coreId = item.id;
   row.className = "core-row";
   row.draggable = true;
@@ -191,13 +195,11 @@ const renderCore = (item, row) => {
   // row.addEventListener("mouseover", handleRowHover);
 }
 
-const renderCapsules = (capsules) => {
+const renderCapsules = (capsules, dragons) => {
   const tableBody = document.querySelector("#capsules-body");
   tableBody.innerHTML = "";
   capsules.forEach(capsule => {
-    // if (priorLaunch.capsule(id)) {
-      renderCapsule(capsule, tableBody.insertRow());
-    // }
+    renderCapsule(capsule, tableBody.insertRow());
   })
 }
 
@@ -205,8 +207,8 @@ const renderCapsule = (item, row) => {
   row.innerHTML = `<td>${item.serial}</td>`
     + `<td>${item.type}</td>`
     + `<td>${item.launches.length}</td>`
-    + `<td>${item.water_landings}</td>`
-    + `<td>${item.last_update}</td>`;
+    + `<td>${item.water_landings}</td>`;
+    // + `<td>${item.last_update}</td>`
   row.dataset.capsuleId = item.id;
   row.className = "core-row";
   row.draggable = true;
@@ -217,26 +219,30 @@ const renderCapsule = (item, row) => {
 document.addEventListener("DOMContentLoaded", (e) => {
 
   fetch(baseSpacexURL + "launches")
-  .then(resp => resp.json())
-  .then(result => {
-    initPriorLaunches(result);
-    fetch(baseSpacexURL + "rockets")
     .then(resp => resp.json())
     .then(result => {
-      renderRockets(result);
-    });
-    fetch(baseSpacexURL + "cores")
-      .then(resp => resp.json())
-      .then(result => {
-        renderCores(result);
-    });
-    fetch(baseSpacexURL + "capsules")
-      .then(resp => resp.json())
-      .then(result => {
-        renderCapsules(result);
-    });
+      initPriorLaunches(result);
+      fetch(baseSpacexURL + "rockets")
+        .then(resp => resp.json())
+        .then(result => {
+          renderRockets(configurator.rocket(result));
+        });
+      fetch(baseSpacexURL + "cores")
+        .then(resp => resp.json())
+        .then(result => {
+          renderCores(configurator.core(result));
+        });
+      fetch(baseSpacexURL + "capsules")
+        .then(resp => resp.json())
+        .then(capsulesData => {
+          fetch(baseSpacexURL + "dragons")
+            .then(resp => resp.json())
+            .then(dragonsData => 
+              renderCapsules(configurator.capsule(capsulesData), dragonsData));
+            
+        });
 
-  });
+    });
 
 
   const boxElement = document.querySelector(".box");
