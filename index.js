@@ -7,10 +7,13 @@ function dropHandler(event) {
   console.log("dropped id = ", id);
   const dropped = document.querySelector(`[data-rocket-id="${id}"]`);
   const imgSource = dropped.dataset.rocketImage;
-  const div = document.querySelector(".mission-assembly");
+  const div = document.createElement("div");
+  div.className = "mission-part";
   const img = document.createElement("img");
+  img.className = "mission-part-img";
   img.src = imgSource;
   div.append(img);
+  document.querySelector(".mission-assembly").append(div);
 }
 
 function dragoverHandler(event) {
@@ -24,65 +27,15 @@ function dragstartHandler(event) {
   console.log(event.target);
 }
 
-/*
-
-function buildAstrosURL() {
-  let url = `https://${apiTesting ? "lldev" : "ll"}.thespacedevs.com/2.2.0/astronaut/?format=json`;
-    url = url + "&active=1";
-    url = url + "&nationality=American";
-    url = url + "&ordering=name";
-    url = url + "&limit=100"; // 100 appears to be the max
-    url = url + "&offset=400";
-    return url;
+const buildAstronautURL = () => {
+  // api provides a testing endpoint with slightly stale data, use that when testing.
+  return url = `https://${testMode ? "lldev" : "ll"}.thespacedevs.com/2.2.0/astronaut/?format=json`
+    + "&active=1"
+    + "&nationality=American"
+    + "&ordering=name"
+    + "&limit=100" // 100 appears to be the max
+//    + "&offset=100";
 }
-
-function fetchAstronauts() {
-  fetch(buildAstrosURL())
-    .then(resp => resp.json())
-    .then(astros => {
-      for (astro of astros.results) {
-        astronauts.push({
-          id: astro.id,
-          name: astro.name,
-          dob: astro.date_of_birth,
-          nationality: astro.nationality,
-          lastFlight: astro.last_flight,
-          firstFlight: astro.first_flight,
-          wiki: astro.wiki,
-          profileImageThumbnail: astro.profile_image_thumbnail,
-          profileImage: astro.profile_image,
-        })
-      }
-      console.log(astronauts);
-    });
-}
-
-function fetchDragons() {
-  for (dragon of dragonsSimulation) {
-    dragons.push( {
-      name: dragon.name,
-      firstFlight: dragon.first_flight,
-      crewCapacity: dragon.crew_capacity,
-      active: dragon.active,
-      wiki: dragon.wikipedia,
-      images: dragon.flickr_images,
-    } );
-
-  }
-}
-
-function fetchCapsules() {
-  for (capsule of capsulesSimulation) {
-    if (capsule.status === "active") {
-      capsules.push( {
-        reuseCount: capsule.reuse_count,
-      })
-    }
-  }
-}
-
-
-*/
 
 const renderRockets = (rockets) => {
   const tableBody = document.querySelector("#rockets-body");
@@ -144,7 +97,8 @@ const configurator = function () {
             && priorLaunches.find(launch => item.id === launch.coreId)
         });
     },
-    capsule: (collection) => collection.filter((item) => item.status === "active" && parseInt(item.water_landings, 10) > 0)
+    capsule: (collection) => collection.filter((item) => item.status === "active" && parseInt(item.water_landings, 10) > 0), 
+    astronaut: (collection) => collection.filter(item => item.status.name === "Active")
   }
 }();
 
@@ -199,51 +153,72 @@ const renderCapsules = (capsules, dragons) => {
   const tableBody = document.querySelector("#capsules-body");
   tableBody.innerHTML = "";
   capsules.forEach(capsule => {
-    renderCapsule(capsule, tableBody.insertRow());
+    // capsule.type of "Dragon n.x" matches to dragon.name of "Dragon 1" or "Dragon 2"
+    const dragon = dragons.find(item => item.name === capsule.type.slice(0, item.name.length))
+    renderCapsule(capsule, dragon, tableBody.insertRow());
   })
 }
 
-const renderCapsule = (item, row) => {
-  row.innerHTML = `<td>${item.serial}</td>`
-    + `<td>${item.type}</td>`
+const renderCapsule = (item, dragon, row) => {
+  row.innerHTML = `<td>${item.type}</td>`
+    + `<td>${dragon.crew_capacity}</td>`
+//    + `<td>${dragon.first_flight}</td>`
+    + `<td>${item.serial}</td>`
     + `<td>${item.launches.length}</td>`
     + `<td>${item.water_landings}</td>`;
-    // + `<td>${item.last_update}</td>`
   row.dataset.capsuleId = item.id;
-  row.className = "core-row";
+  row.dataset.dragonImages = dragon.flickr_images;
+  row.className = "capsule-row";
   row.draggable = true;
   row.addEventListener("dragstart", dragstartHandler);
   // row.addEventListener("mouseover", handleRowHover);
 }
 
+const renderAstronauts = (astronauts) => {
+  const tableBody = document.querySelector("#astros-body");
+  tableBody.innerHTML = "";
+  astronauts.forEach(astronaut => {
+    renderAstronaut(astronaut, tableBody.insertRow());
+  })
+
+}
+
+const renderAstronaut = (item, row) => {
+  row.innerHTML = `<td>${item.name}</td>`
+    + `<td>${item.date_of_birth}</td>`
+    + `<td>${item.first_flight}</td>`
+    + `<td>${item.last_flight}</td>`;
+  row.dataset.astronautId = item.id;
+  row.dataset.astronautImage = item.profile_image;
+  row.className = "astro-row";
+  row.draggable = true;
+  row.addEventListener("dragstart", dragstartHandler);
+
+}
+
 document.addEventListener("DOMContentLoaded", (e) => {
 
   fetch(baseSpacexURL + "launches")
+  .then(resp => resp.json())
+  .then(result => {
+    initPriorLaunches(result);
+    fetch(baseSpacexURL + "rockets")
     .then(resp => resp.json())
-    .then(result => {
-      initPriorLaunches(result);
-      fetch(baseSpacexURL + "rockets")
-        .then(resp => resp.json())
-        .then(result => {
-          renderRockets(configurator.rocket(result));
-        });
-      fetch(baseSpacexURL + "cores")
-        .then(resp => resp.json())
-        .then(result => {
-          renderCores(configurator.core(result));
-        });
-      fetch(baseSpacexURL + "capsules")
-        .then(resp => resp.json())
-        .then(capsulesData => {
-          fetch(baseSpacexURL + "dragons")
-            .then(resp => resp.json())
-            .then(dragonsData => 
-              renderCapsules(configurator.capsule(capsulesData), dragonsData));
-            
-        });
-
+    .then(result => renderRockets(configurator.rocket(result)));
+    fetch(baseSpacexURL + "cores")
+    .then(resp => resp.json())
+    .then(result => renderCores(configurator.core(result)));
+    fetch(baseSpacexURL + "capsules")
+    .then(resp => resp.json())
+    .then(capsulesData => {
+      fetch(baseSpacexURL + "dragons")
+      .then(resp => resp.json())
+      .then(dragonsData => renderCapsules(configurator.capsule(capsulesData), dragonsData));
     });
-
+    fetch(buildAstronautURL())
+    .then(resp => resp.json())
+    .then(result => renderAstronauts(configurator.astronaut(result.results)));
+  });
 
   const boxElement = document.querySelector(".box");
   console.log(boxElement);

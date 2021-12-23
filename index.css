@@ -23,9 +23,18 @@ td {
   width: 200px;
 }
 
-img {
-  height: 200px;
-  width: 300px;
-  object-fit: contain;
+.mission-part {
+  text-align: center;
+  border: grey solid 1px;
+  padding: 1rem;
+  height: 20rem;
+  width: 20rem;
+  display: inline-grid;
+  margin: 1rem 2rem;
 }
 
+.mission-part-img {
+  height: 19rem;
+  width: 19rem;
+  object-fit: contain;
+}
