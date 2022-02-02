@@ -1,4 +1,9 @@
 # README.md
+start your server
+% json-server --watch rocket-odyssey-test.json
+
+in your browser, any endpoint to test
+http://localhost:3000/launches
 
 ## APIs
 The Space Devs Launch Library 2   
