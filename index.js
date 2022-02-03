@@ -1,22 +1,20 @@
-const apiTestMode = true;
-const showAPIData = true;
+const apiTestMode = false;
+const showAPIData = false;
 const baseSpacexURL = apiTestMode ? "http://localhost:3000/" : "https://api.spacexdata.com/v4/";
 
 function dropHandler(event) {
-  // event.preventDefault();
   const id = event.dataTransfer.getData("text/plain");
-  if (assembly.add("rocket", id)) {
-    console.log("dropped id = ", id);
-    const dropped = document.querySelector(`[data-rocket-id="${id}"]`);
-    const imgSource = dropped.dataset.rocketImage;
+  const droppedElement = document.querySelector(`[data-id="${id}"]`);
+  if (assembly.add(droppedElement)) {
     const div = document.createElement("div");
     div.className = "mission-part";
     const img = document.createElement("img");
     img.className = "mission-part-img";
-    img.src = imgSource;
+    img.src = droppedElement.dataset.image;
     div.append(img);
     document.querySelector(".mission-assembly").append(div);
   }
+
 }
 
 function dragoverHandler(event) {
@@ -25,9 +23,8 @@ function dragoverHandler(event) {
 }
 
 function dragstartHandler(event) {
-  event.dataTransfer.setData("text/plain", event.target.dataset.rocketId);
+  event.dataTransfer.setData("text/plain", event.target.dataset.id);
   event.dataTransfer.dropEffect = "copy";
-  console.log(event.target);
 }
 
 const buildAstronautURL = () => {
@@ -56,6 +53,7 @@ const renderRocket = (rocket, row) => {
     + `<td>${rocket.success_rate_pct}</td>`;
   row.dataset.part = "rocket";
   row.dataset.id = rocket.id;
+  row.dataset.name = rocket.name;
   row.dataset.image = rocket.flickr_images[0];
   row.className = "rocket-row";
   row.draggable = true;
@@ -74,10 +72,12 @@ const renderCores = (cores) => {
 const renderCore = (item, row) => {
   row.innerHTML = `<td>${item.serial}</td>`
     + `<td>${item.reuse_count}</td>`
-    + `<td>${item.asds_landings}</td>`;
-    // + `<td>${item.last_update}</td>`;
+    + `<td>${item.asds_landings}</td>`
+    + `<td>${item.last_update}</td>`;
   row.dataset.part = "booster";
   row.dataset.id = item.id;
+  row.dataset.name = item.serial;
+  row.dataset.image = null;
   row.className = "booster-row";
   row.draggable = true;
   row.addEventListener("dragstart", dragstartHandler);
@@ -100,14 +100,16 @@ const renderCapsules = (capsules, dragons) => {
 const renderCapsule = (item, dragon, row) => {
   /* Capsule combines attributes from 2 endpoints "capsule" and "dragons" 
   */
-  row.innerHTML = `<td>${item.type}</td>`
-    + `<td>${dragon.crew_capacity > 0 ? "crew" : "cargo"}</td>`
+  let dragonType = `${dragon.crew_capacity > 0 ? "Crew" : "Cargo"} ${item.type}` 
+  row.innerHTML = `<td>${dragonType}</td>`
+//    + `<td>${dragon.crew_capacity > 0 ? "crew" : "cargo"}</td>`
 //    + `<td>${dragon.first_flight}</td>`
     + `<td>${item.serial}</td>`
     + `<td>${item.launches.length}</td>`
     + `<td>${item.water_landings}</td>`;
   row.dataset.id = item.id;
   row.dataset.part = "capsule"
+  row.dataset.name = `${dragonType} ${item.serial}`
   row.dataset.image = dragon.flickr_images[0];
   row.className = "capsule-row";
   row.draggable = true;
@@ -132,6 +134,7 @@ const renderAstronaut = (item, row) => {
     + `<td>${item.last_flight}</td>`;
   row.dataset.part = "astronaut";
   row.dataset.id = item.id;
+  row.dataset.name = item.name;
   row.dataset.image = item.profile_image;
   row.className = "astronaut-row";
   row.draggable = true;
@@ -149,11 +152,18 @@ const assembly = function () {
       complicated and decided instead to do it this way with separate methods
       for adding and deleting crew.
   */
-  const mission = { crew: [] };
+
+  const mission = [];
   return {
-    add: (partName, partId) => {
-      if (allowPart(mission, partName)) {
-        mission[partName] = partId;
+    add: (element) => {
+      console.log("MISSION:", mission)
+      if (allowPart(mission, element.dataset.part)) {
+        mission.push({
+          id: element.dataset.id,
+          part: element.dataset.part,
+          name: element.dataset.name,
+          image: element.dataset.part
+        })
         return true;
       }
       else {
@@ -168,58 +178,95 @@ const assembly = function () {
 }();
 
 const allowPart = (mission, name) => {
-  /*
-    Determine if a part is allowed in the assembly
-    Rules for allowing a part are as follows:
-      rockets: only 1 allowed
-      boosters: 
-        requires a rocket
-        none allowed if rocket = "Starship", otherwise 1 allowed
-      capsules: 
-        requires a booster
-        same as boosters
-      astronauts: 
-        requires a capsule
-        none allowed if capsule type is "cargo"
-        othertwise maximum 3 allowed
-  */
-  
+  let rocketPart = partReady(mission, "rocket");
   switch (name) {
     case "rocket":
-      if ("rocket" in mission) {
+      if (rocketPart) {
         alert("Sorry, only 1 rocket allowed per mission!");
         return false;
       }
+      break;
     case "booster":
-      if ("rocket" in mission) {
-        if (mission["rocket"].toLowerCase() === "starship") {
-          alert("Sorry, Starship rocket has its own booster!");
+      if (!rocketPart) {
+        alert("Please pick a rocket before you pick a booster.")
+        return false;
+      }
+      else {
+        if (starshipReady(rocketPart)) {
+          alert("Sorry, Starship rocket needs no boosters!");
           return false;
         }
-        if ("booster" in mission) {
-          alert("Sorry, only 1 booster allowed per mission!");
+        if ( (falconHeavyReady(rocketPart) && threeBoosters(mission))
+              || (!falconHeavyReady(rocketPart) && partReady(mission, "booster")) ) {
+          alert("No more boosters are needed for this mission!");
           return false;
         }
       }
+      break;
     case "capsule":
-      if (mission["rocket"].toLowerCase() === "starship" || "booster" in mission) {
-        if ("capsule" in mission) {
+      let boosterPart = partReady(mission, "booster");
+      if (starshipReady(rocketPart)) {
+        alert("Sorry, Starship rocket has its own capsule!");
+        return false;
+      }
+      if (!boosterPart) {
+        alert("Please pick a booster before you pick a capsule.")
+        return false;
+      }
+      else {
+        if (falconHeavyReady(rocketPart) && !threeBoosters(mission)) {
+          alert("Falcon heavy requires 3 boosters, please pick more boosters!")
+          return false;
+        }
+        if (partReady(mission, "capsule")) {
           alert("Sorry, only 1 capsule allowed per mission!");
           return false;
         }
       }
-
+      break;
     case "astronaut":
-      if ("capsule" in mission) {
-        if (mission["astronauts"].length === 3) {
-          alert("Sorry, no more than 3 astronatus allowed per mission!");
+      let capsulePart = partReady(mission, "capsule");
+      if (capsulePart) {
+        if (capsulePart.name.toLowerCase().includes("cargo")) {
+          alert("Cargo Dragon has no seats for astronauts!");
           return false;
         }
+      } else if (!rocketPart || !starshipReady(rocketPart)) {
+        alert("Please pick a capsule before you pick astronauts");
+        return false;
       }
-
+      if (countAstronauts === 3) {
+        alert("Sorry, no more than 3 astronauts allowed per mission!");
+        return false;
+      }
+      break;
     default:
-      return true;
+      return false;
   }
+  return true;
+
+}
+
+const partReady = (mission, part) => mission.find(item => item.part === part);
+
+const starshipReady = (rocket) => rocket.name.toLowerCase() === "starship";
+
+const falconHeavyReady = (rocket) => rocket.name.toLowerCase() === "falcon heavy";
+
+const countAstronauts = (mission) => {
+  let astroCount = mission.reduce(function(count, element) {
+    element.part === "astronaut" ? count += 1 : null;
+    return count;
+  }, 0)
+  return astroCount;
+}
+
+const threeBoosters = (mission) => {
+  let boosterCount = mission.reduce(function(count, element) {
+    element.part === "booster" ? count += 1 : null;
+    return count;
+  }, 0)
+  return boosterCount < 3 ? false : true;  
 }
 
 const configurator = function () {
