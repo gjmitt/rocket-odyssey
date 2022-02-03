@@ -1,13 +1,14 @@
 // Set apiTestMode to false to use a test endpoint.
 // For everything except astronauts, the test endpoint is a local json server.
 // For astronatust, the test endpoint is on Launch Library.
-const apiTestMode = false; 
+const apiTestMode = true; 
 
 // Set showAPIData to console.log the result of each API fetch
 const showAPIData = true;
 const baseSpacexURL = apiTestMode ? "http://localhost:3000/" : "https://api.spacexdata.com/v4/";
 
 const astros = [];
+const MAX_ASTROS_LENGTH = 20;
 
 function dropHandler(event) {
   const id = event.dataTransfer.getData("text/plain");
@@ -273,7 +274,7 @@ const threeBoosters = (mission) => {
 
 const configurator = function () {
   /*
-    configurator() filters mission parts so user-interface lists  
+    configurator() filters mission parts so that user-interface lists  
       rockets, boosters, etc. that appear practical for assembling a mission.  
     I originally thought that it would be sufficient to select parts that were
       used on prior missions, but after further research more filter critera
@@ -292,7 +293,17 @@ const configurator = function () {
     capsule: (collection) => collection.filter((item) => item.status === "active" && parseInt(item.water_landings, 10) > 0), 
     // only include astronauts who have flown
     // used to also filter for active, but this is now part of fetch -- item.status.name === "Active" 
-    astronaut: (collection) => collection.filter(item => item.status.name === "Active" && item.first_flight)
+    // astronaut: (collection) => collection.filter(item => item.status.name === "Active" && item.first_flight)
+    astronaut: (collection) => {
+      for (const item of collection) {
+        if (item.status.name === "Active" && item.first_flight) {
+          astros.push(item);
+          if (astros.length === MAX_ASTROS_LENGTH) {
+            break;
+          }
+        }
+      }
+    }
   }
 }();
 
@@ -350,12 +361,16 @@ const getAstronauts = (astroURL) => {
     fetch(astroURL)
     .then(resp => resp.json())
     .then(result => {
-      configurator.astronaut(result.results).forEach(item => astros.push(cacheAstronaut(item)));
-      // renderAstronauts(astros);
-      if (result.next) {
+      configurator.astronaut(result.results);
+      // configurator.astronaut(result.results).forEach(item => {
+      //   astros.push(cacheAstronaut(item))
+      // });
+      renderAstronauts(astros);
+      if (result.next && astros.length < MAX_ASTROS_LENGTH) {
         getAstronauts(result.next)
       }
     });
+
 }
 
 document.addEventListener("DOMContentLoaded", (e) => {
@@ -379,7 +394,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
       .then(resp => resp.json())
       .then(dragonsData => renderCapsules(configurator.capsule(capsulesData), dragonsData));
     });
-    getAstronauts(buildAstronautURL(0));
+    getAstronauts(buildAstronautURL(1));
   });
 
   const boxElement = document.querySelector(".box");

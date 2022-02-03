@@ -31,6 +31,7 @@ https://api.spacexdata.com/v4/
   rockets
 
 ### Test Mode
+Test mode is used to avoid 429 errors "Too many requests" (rate limiting).
 If you are using test mode, make sure to start your json server:
 json-server --watch rocket-odyssey-test.json
 
