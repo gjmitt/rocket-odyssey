@@ -1,6 +1,6 @@
 .main-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 20px;  
 }
 
@@ -37,4 +37,8 @@ td {
   height: 19rem;
   width: 19rem;
   object-fit: contain;
+}
+
+.row-hidden {
+  visibility: collapse;
 }

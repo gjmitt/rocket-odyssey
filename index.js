@@ -1,6 +1,13 @@
-const apiTestMode = false;
-const showAPIData = false;
+// Set apiTestMode to false to use a test endpoint.
+// For everything except astronauts, the test endpoint is a local json server.
+// For astronatust, the test endpoint is on Launch Library.
+const apiTestMode = false; 
+
+// Set showAPIData to console.log the result of each API fetch
+const showAPIData = true;
 const baseSpacexURL = apiTestMode ? "http://localhost:3000/" : "https://api.spacexdata.com/v4/";
+
+const astros = [];
 
 function dropHandler(event) {
   const id = event.dataTransfer.getData("text/plain");
@@ -27,16 +34,6 @@ function dragstartHandler(event) {
   event.dataTransfer.dropEffect = "copy";
 }
 
-const buildAstronautURL = () => {
-  // api provides a testing endpoint with slightly stale data, use that when testing.
-  return url = `https://${apiTestMode ? "lldev" : "ll"}.thespacedevs.com/2.2.0/astronaut/?format=json`
-    + "&active=1"
-    + "&nationality=American"
-    + "&ordering=name"
-    + "&limit=100" // 100 appears to be the max
-//    + "&offset=100";
-}
-
 const renderRockets = (rockets) => {
   const tableBody = document.querySelector("#rockets-body");
   tableBody.innerHTML = "";
@@ -58,6 +55,9 @@ const renderRocket = (rocket, row) => {
   row.className = "rocket-row";
   row.draggable = true;
   row.addEventListener("dragstart", dragstartHandler);
+  // if (rocket.name === "Starship") {
+  //   row.className = "row-hidden";
+  // }
   // row.addEventListener("mouseover", handleRowHover);
 }
 
@@ -120,7 +120,7 @@ const renderCapsule = (item, dragon, row) => {
 const renderAstronauts = (astronauts) => {
   showAPIData ? console.log("ASTRONAUTS from API", astronauts) : null;
   const tableBody = document.querySelector("#astros-body");
-  tableBody.innerHTML = "";
+//  tableBody.innerHTML = "";
   astronauts.forEach(astronaut => {
     renderAstronaut(astronaut, tableBody.insertRow());
   })
@@ -128,10 +128,12 @@ const renderAstronauts = (astronauts) => {
 }
 
 const renderAstronaut = (item, row) => {
+  // for dates, only show the year, full date is really kind of meaningless, all we want to do is 
+  // give the user an idea of person's age and flight experience
   row.innerHTML = `<td>${item.name}</td>`
-    + `<td>${item.date_of_birth}</td>`
-    + `<td>${item.first_flight}</td>`
-    + `<td>${item.last_flight}</td>`;
+    + `<td>${item.date_of_birth.slice(0,4)}</td>`
+    + `<td>${item.first_flight.slice(0,4)}</td>`
+    + `<td>${item.last_flight.slice(0,4)}</td>`;
   row.dataset.part = "astronaut";
   row.dataset.id = item.id;
   row.dataset.name = item.name;
@@ -172,8 +174,8 @@ const assembly = function () {
     },
     delete: (partName) => delete mission[partName],
     show: () => mission,
-    addCrew: (newCrew) => mission.crew.push(newCrew),
-    deleteCrew: (oldCrew) => mission.crew = mission.crew.filter(item => item != oldCrew)
+    // addCrew: (newCrew) => mission.crew.push(newCrew),
+    // deleteCrew: (oldCrew) => mission.crew = mission.crew.filter(item => item != oldCrew)
   }
 }();
 
@@ -215,7 +217,7 @@ const allowPart = (mission, name) => {
       }
       else {
         if (falconHeavyReady(rocketPart) && !threeBoosters(mission)) {
-          alert("Falcon heavy requires 3 boosters, please pick more boosters!")
+          alert("Falcon Heavy requires 3 boosters, please pick more boosters!")
           return false;
         }
         if (partReady(mission, "capsule")) {
@@ -235,7 +237,7 @@ const allowPart = (mission, name) => {
         alert("Please pick a capsule before you pick astronauts");
         return false;
       }
-      if (countAstronauts === 3) {
+      if (countAstronauts(mission) === 3) {
         alert("Sorry, no more than 3 astronauts allowed per mission!");
         return false;
       }
@@ -255,7 +257,7 @@ const falconHeavyReady = (rocket) => rocket.name.toLowerCase() === "falcon heavy
 
 const countAstronauts = (mission) => {
   let astroCount = mission.reduce(function(count, element) {
-    element.part === "astronaut" ? count += 1 : null;
+    element.part.toLowerCase() === "astronaut" ? count += 1 : null;
     return count;
   }, 0)
   return astroCount;
@@ -288,7 +290,9 @@ const configurator = function () {
         });
     },
     capsule: (collection) => collection.filter((item) => item.status === "active" && parseInt(item.water_landings, 10) > 0), 
-    astronaut: (collection) => collection.filter(item => item.status.name === "Active")
+    // only include astronauts who have flown
+    // used to also filter for active, but this is now part of fetch -- item.status.name === "Active" 
+    astronaut: (collection) => collection.filter(item => item.status.name === "Active" && item.first_flight)
   }
 }();
 
@@ -321,8 +325,42 @@ const initPriorLaunches = (launches) => {
   }
 }
 
+const buildAstronautURL = (offset) => {
+  // api provides a testing endpoint with slightly stale data, use that when testing.
+  return url = `https://${apiTestMode ? "lldev" : "ll"}.thespacedevs.com/2.2.0/astronaut/?format=json`
+    + "&active=1"   // this doesn't seem to work, so also do it on configurator
+    + "&nationality=American"
+    + "&ordering=name"
+    + "&limit=100" // 100 appears to be the max
+    + `&offset=${offset}`;
+}
+
+const cacheAstronaut = (item) => {
+  return {
+    date_of_birth: item.date_of_birth,
+    first_flight: item.first_flight,
+    last_flight: item.last_flight,
+    id: item.id,
+    name: item.name,
+    profuile_image: item.profile_image
+  }
+}
+
+const getAstronauts = (astroURL) => {
+    fetch(astroURL)
+    .then(resp => resp.json())
+    .then(result => {
+      configurator.astronaut(result.results).forEach(item => astros.push(cacheAstronaut(item)));
+      // renderAstronauts(astros);
+      if (result.next) {
+        getAstronauts(result.next)
+      }
+    });
+}
+
 document.addEventListener("DOMContentLoaded", (e) => {
-  console.log(baseSpacexURL + "launches")
+  console.log("SPACEX base endpoint = ", baseSpacexURL + "launches")
+  console.log("LAUNCH LIBRARY endpoint = ", buildAstronautURL(0))  
 
   fetch(baseSpacexURL + "launches")
   .then(resp => resp.json())
@@ -341,13 +379,12 @@ document.addEventListener("DOMContentLoaded", (e) => {
       .then(resp => resp.json())
       .then(dragonsData => renderCapsules(configurator.capsule(capsulesData), dragonsData));
     });
-    fetch(buildAstronautURL())
-    .then(resp => resp.json())
-    .then(result => renderAstronauts(configurator.astronaut(result.results)));
+    getAstronauts(buildAstronautURL(0));
   });
 
   const boxElement = document.querySelector(".box");
   boxElement.addEventListener("drop", dropHandler);
   boxElement.addEventListener("dragover", dragoverHandler);
+
 
 })

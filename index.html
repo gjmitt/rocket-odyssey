@@ -10,7 +10,9 @@
 </head>
 
   <body>
-    <div class="main-container">
+
+    <!-- start div main-container-->
+    <div class="main-container">  
       <div id="left-col">column 1
         <h2>Rockets</h2>
         <table id="rockets-table">
@@ -39,17 +41,26 @@
         <table id="capsules-table">
           <thead>
             <th>Type</th>
-<!--        <th>Crew</th>   -->
-<!--        <th>1st Flight</th> -->
             <th>Serial</th>
             <th>Flown</th>
             <th>Landed</th>
-<!--        <th>Note</th> -->
           </thead>
           <tbody id="capsules-body">
           </tbody>
         </table>
 
+      </div>  
+      <!-- end left-col -->
+
+      <!-- start middle-col -->
+      <div id="middle-col">column 2
+        <div class="box">drop here</div>
+        <div class="mission-assembly"></div>
+      </div>
+      <!-- end middle-col -->
+
+      <!-- start right-col -->
+      <div id="right-col">column 3
         <h2>Astronauts</h2>
         <table id="astros-table">
           <thead>
@@ -61,16 +72,13 @@
           <tbody id="astros-body">
           </tbody>
         </table>
-
-
-
       </div>
-      <div id="right-col">column 2
-        <div class="box">drop here</div>
-        <div class="mission-assembly">
-        </div>
+      <!-- end right-col -->
+
+
     </div>
-    
+    <!-- end div main-container-->
+
   <script type="text/javascript" src="index.js"></script>
 
 </body>
