@@ -4,7 +4,7 @@
 const apiTestMode = true; 
 
 // Set showAPIData to console.log the result of each API fetch
-const showAPIData = true;
+const showAPIData = false;
 const baseSpacexURL = apiTestMode ? "http://localhost:3000/" : "https://api.spacexdata.com/v4/";
 
 function dropHandler(event) {
@@ -122,39 +122,40 @@ const renderAstronauts = () => {
   astroCache.show().forEach(astronaut => {
     renderAstronaut(astronaut, tableBody.insertRow());
   })
+  renderAstroNavButtons();
 
+}
+
+const renderAstroNavButtons = () => {
   const div = document.querySelector("#astro-nav-buttons");
   div.innerHTML = "";
+
   const btnPrev = document.createElement("button");
   btnPrev.textContent = "Prev";
-  btnPrev.addEventListener("click", handleClickPrev);
+  if (!astroCache.onFirstPage()) {
+    btnPrev.addEventListener("click", handleClickPrev);
+  }
   div.append(btnPrev);
 
   const btnNext = document.createElement("button");
   btnNext.textContent = "Next";
-  btnNext.addEventListener("click", handleClickNext);
+  if (!astroCache.onLastPage()) {
+    btnNext.addEventListener("click", handleClickNext);
+  }
   div.append(btnNext);
   
 }
 
 function handleClickNext(event) {
-  if (astroCache.endOfFile()) {
-    alert("Sorry, no more astronauts.")
-  } else {
-    astroCache.clear();
-    getAstronauts();
-  }
+  console.log("Next button clicked");
+  // disable button so user does not trigger multiple simultaneous fetches!
+  event.target.setAttribute("disabled", true);
+  astroCache.nextPage();
 }
 
 function handleClickPrev(event) {
-  if (astroCache.startOfFile()) {
-    alert("Sorry, no more astronauts.")
-  }
-  else {
-    astroCache.clear();
-    astroCache.goBack();
-    getAstronauts();
-  }
+  console.log("Prev button clicked");
+  astroCache.prevPage();
 }
 
 const renderAstronaut = (item, row) => {
@@ -326,37 +327,73 @@ const configurator = function () {
 }();
 
 const astroCache = function () {
-  const MAX_ASTROS = 20;
-  const ASTRO_API_LIMIT = 100;  // 100 appears to be the max
-  const astros = [];
-  let currentOffset = 0;
-  let fetchOffsets = [0];
+  const MAX_PAGE_SIZE = 20;
+  const API_LIMIT = 100;  
+  const pages = [];
+  let offsetCounter = 0;
+  let cachePage = 0;
+  let fullCache = false;
+  let fullPage = false;
+  let renderPage = 0;
 
   return {
     // only include astronauts who have flown
     // used to also filter for active, but this is now part of fetch -- item.status.name === "Active" 
-    update: (collection) => {
+    apiLimit: () => API_LIMIT,
+    nextOffset: () => offsetCounter, 
+    cacheAstros: (collection) => {
+      if (!offsetCounter) {
+        // nothing in the cache yet, need to init a new page
+        pages.push(astroCache.initPage());
+      }
       for (const item of collection) {
-        currentOffset += 1;
+        offsetCounter++;
         if (item.status.name === "Active" && item.first_flight) {
-          astros.push(item);
-          if (astros.length === MAX_ASTROS) {
-            break;
+          pages[cachePage].astros.push(item);
+          if (pages[cachePage].astros.length === MAX_PAGE_SIZE) {
+            fullPage = true;
+            return;
           }
         }
       }
-      fetchOffsets.push(currentOffset);
-      return currentOffset;
+      // got to end of collection, if it is less than API_LIMIT then there's
+      //   no more api data, so set fullCache to avoid further fetches
+      if (collection.length < API_LIMIT) {
+        fullCache = true;
+      } 
     },
-    apiLimit: () => ASTRO_API_LIMIT,
-    clear: () => astros.length = 0,
-    show: () => astros,
-    nextOffset: () => fetchOffsets[-1],
-    prevOffset: () => {
-
+    initPage: () => {
+      return {
+        offsetCounter: offsetCounter,
+        astros: []
+      } 
+    },
+    onLastPage: () => !astroCache.isFullCache() || renderPage != pages.length - 1 ? false : true,
+    onFirstPage: () => renderPage === 0 ? true : false, 
+    isFullPage: () => fullPage,
+    isFullCache: () => fullCache,
+    advanceCache: () => {
+      if (!astroCache.isFullCache()) {
+        renderPage = ++cachePage;
+        pages.push(astroCache.initPage());
+        fullPage = false;
+      }
+    },
+    show: () => pages[renderPage].astros,
+    nextPage: () => {
+      if (!astroCache.isFullCache()) {
+        getAstronauts();
+      } else {
+        renderPage++;
+        renderAstronauts();
+      }
+    },
+    prevPage: () => {
+      renderPage--;
+      renderAstronauts();
     }
-    
   }
+
 }();
 
 const initPriorLaunches = (launches) => {
@@ -398,26 +435,19 @@ const buildAstronautURL = () => {
     + `&offset=${astroCache.nextOffset()}`;
 }
 
-// const astroCachenaut = (item) => {
-//   return {
-//     date_of_birth: item.date_of_birth,
-//     first_flight: item.first_flight,
-//     last_flight: item.last_flight,
-//     id: item.id,
-//     name: item.name,
-//     profuile_image: item.profile_image
-//   }
-// }
-
 const getAstronauts = () => {
+  // this needs to be recursive since a single fetch does not get enough astros
+  //   to fill the cache 
     fetch(buildAstronautURL())
     .then(resp => resp.json())
     .then(result => {
-      astroCache.update(result.results);
-      if (result.next && astroCache.show().length < MAX_ASTROS_LENGTH) {
+      console.log("FETCH offset = ", astroCache.nextOffset());
+      astroCache.cacheAstros(result.results);
+      if (result.next && !astroCache.isFullPage()) {
         getAstronauts();
       } else {
         renderAstronauts();
+        astroCache.advanceCache();
       }
     });
 
