@@ -7,9 +7,6 @@ const apiTestMode = true;
 const showAPIData = true;
 const baseSpacexURL = apiTestMode ? "http://localhost:3000/" : "https://api.spacexdata.com/v4/";
 
-const astros = [];
-const MAX_ASTROS_LENGTH = 20;
-
 function dropHandler(event) {
   const id = event.dataTransfer.getData("text/plain");
   const droppedElement = document.querySelector(`[data-id="${id}"]`);
@@ -118,14 +115,46 @@ const renderCapsule = (item, dragon, row) => {
   // row.addEventListener("mouseover", handleRowHover);
 }
 
-const renderAstronauts = (astronauts) => {
-  showAPIData ? console.log("ASTRONAUTS from API", astronauts) : null;
+const renderAstronauts = () => {
+  showAPIData ? console.log("ASTRONAUTS from API", astroCache.show()) : null;
   const tableBody = document.querySelector("#astros-body");
-//  tableBody.innerHTML = "";
-  astronauts.forEach(astronaut => {
+  tableBody.innerHTML = "";
+  astroCache.show().forEach(astronaut => {
     renderAstronaut(astronaut, tableBody.insertRow());
   })
 
+  const div = document.querySelector("#astro-nav-buttons");
+  div.innerHTML = "";
+  const btnPrev = document.createElement("button");
+  btnPrev.textContent = "Prev";
+  btnPrev.addEventListener("click", handleClickPrev);
+  div.append(btnPrev);
+
+  const btnNext = document.createElement("button");
+  btnNext.textContent = "Next";
+  btnNext.addEventListener("click", handleClickNext);
+  div.append(btnNext);
+  
+}
+
+function handleClickNext(event) {
+  if (astroCache.endOfFile()) {
+    alert("Sorry, no more astronauts.")
+  } else {
+    astroCache.clear();
+    getAstronauts();
+  }
+}
+
+function handleClickPrev(event) {
+  if (astroCache.startOfFile()) {
+    alert("Sorry, no more astronauts.")
+  }
+  else {
+    astroCache.clear();
+    astroCache.goBack();
+    getAstronauts();
+  }
 }
 
 const renderAstronaut = (item, row) => {
@@ -290,20 +319,43 @@ const configurator = function () {
             && priorLaunches.find(launch => item.id === launch.coreId)
         });
     },
-    capsule: (collection) => collection.filter((item) => item.status === "active" && parseInt(item.water_landings, 10) > 0), 
+    capsule: (collection) => collection.filter((item) => item.status === "active" && parseInt(item.water_landings, 10) > 0)
+    // astronaut: (collection) => collection.filter(item => item.status.name === "Active" && item.first_flight)
+  }
+
+}();
+
+const astroCache = function () {
+  const MAX_ASTROS = 20;
+  const ASTRO_API_LIMIT = 100;  // 100 appears to be the max
+  const astros = [];
+  let currentOffset = 0;
+  let fetchOffsets = [0];
+
+  return {
     // only include astronauts who have flown
     // used to also filter for active, but this is now part of fetch -- item.status.name === "Active" 
-    // astronaut: (collection) => collection.filter(item => item.status.name === "Active" && item.first_flight)
-    astronaut: (collection) => {
+    update: (collection) => {
       for (const item of collection) {
+        currentOffset += 1;
         if (item.status.name === "Active" && item.first_flight) {
           astros.push(item);
-          if (astros.length === MAX_ASTROS_LENGTH) {
+          if (astros.length === MAX_ASTROS) {
             break;
           }
         }
       }
+      fetchOffsets.push(currentOffset);
+      return currentOffset;
+    },
+    apiLimit: () => ASTRO_API_LIMIT,
+    clear: () => astros.length = 0,
+    show: () => astros,
+    nextOffset: () => fetchOffsets[-1],
+    prevOffset: () => {
+
     }
+    
   }
 }();
 
@@ -336,38 +388,36 @@ const initPriorLaunches = (launches) => {
   }
 }
 
-const buildAstronautURL = (offset) => {
+const buildAstronautURL = () => {
   // api provides a testing endpoint with slightly stale data, use that when testing.
   return url = `https://${apiTestMode ? "lldev" : "ll"}.thespacedevs.com/2.2.0/astronaut/?format=json`
     + "&active=1"   // this doesn't seem to work, so also do it on configurator
     + "&nationality=American"
     + "&ordering=name"
-    + "&limit=100" // 100 appears to be the max
-    + `&offset=${offset}`;
+    + `&limit=${astroCache.apiLimit()}` // 100 appears to be the max
+    + `&offset=${astroCache.nextOffset()}`;
 }
 
-const cacheAstronaut = (item) => {
-  return {
-    date_of_birth: item.date_of_birth,
-    first_flight: item.first_flight,
-    last_flight: item.last_flight,
-    id: item.id,
-    name: item.name,
-    profuile_image: item.profile_image
-  }
-}
+// const astroCachenaut = (item) => {
+//   return {
+//     date_of_birth: item.date_of_birth,
+//     first_flight: item.first_flight,
+//     last_flight: item.last_flight,
+//     id: item.id,
+//     name: item.name,
+//     profuile_image: item.profile_image
+//   }
+// }
 
-const getAstronauts = (astroURL) => {
-    fetch(astroURL)
+const getAstronauts = () => {
+    fetch(buildAstronautURL())
     .then(resp => resp.json())
     .then(result => {
-      configurator.astronaut(result.results);
-      // configurator.astronaut(result.results).forEach(item => {
-      //   astros.push(cacheAstronaut(item))
-      // });
-      renderAstronauts(astros);
-      if (result.next && astros.length < MAX_ASTROS_LENGTH) {
-        getAstronauts(result.next)
+      astroCache.update(result.results);
+      if (result.next && astroCache.show().length < MAX_ASTROS_LENGTH) {
+        getAstronauts();
+      } else {
+        renderAstronauts();
       }
     });
 
@@ -394,7 +444,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
       .then(resp => resp.json())
       .then(dragonsData => renderCapsules(configurator.capsule(capsulesData), dragonsData));
     });
-    getAstronauts(buildAstronautURL(1));
+    getAstronauts();
   });
 
   const boxElement = document.querySelector(".box");
