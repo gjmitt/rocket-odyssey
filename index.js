@@ -1,7 +1,7 @@
 // Set apiTestMode to false to use a test endpoint.
 // For everything except astronauts, the test endpoint is a local json server.
 // For astronatust, the test endpoint is on Launch Library.
-const apiTestMode = true; 
+const apiTestMode = true;
 
 // Set showAPIData to console.log the result of each API fetch
 const showAPIData = false;
@@ -85,7 +85,7 @@ const renderCore = (item, row) => {
 const renderCapsules = (capsules, dragons) => {
   showAPIData ? console.log("DRAGONS from API", dragons) : null;
   showAPIData ? console.log("CAPSULES from API", capsules) : null;
- 
+
   const tableBody = document.querySelector("#capsules-body");
   tableBody.innerHTML = "";
   capsules.forEach(capsule => {
@@ -98,10 +98,10 @@ const renderCapsules = (capsules, dragons) => {
 const renderCapsule = (item, dragon, row) => {
   /* Capsule combines attributes from 2 endpoints "capsule" and "dragons" 
   */
-  let dragonType = `${dragon.crew_capacity > 0 ? "Crew" : "Cargo"} ${item.type}` 
+  let dragonType = `${dragon.crew_capacity > 0 ? "Crew" : "Cargo"} ${item.type}`
   row.innerHTML = `<td>${dragonType}</td>`
-//    + `<td>${dragon.crew_capacity > 0 ? "crew" : "cargo"}</td>`
-//    + `<td>${dragon.first_flight}</td>`
+    //    + `<td>${dragon.crew_capacity > 0 ? "crew" : "cargo"}</td>`
+    //    + `<td>${dragon.first_flight}</td>`
     + `<td>${item.serial}</td>`
     + `<td>${item.launches.length}</td>`
     + `<td>${item.water_landings}</td>`;
@@ -116,45 +116,43 @@ const renderCapsule = (item, dragon, row) => {
 }
 
 const renderAstronauts = () => {
+  astroCache.logStatus("renderAstronauts()");
   showAPIData ? console.log("ASTRONAUTS from API", astroCache.show()) : null;
   const tableBody = document.querySelector("#astros-body");
   tableBody.innerHTML = "";
   astroCache.show().forEach(astronaut => {
     renderAstronaut(astronaut, tableBody.insertRow());
   })
-  renderAstroNavButtons();
+  // enable nav buttons
+  toggleNavButtons(true);
 
 }
 
-const renderAstroNavButtons = () => {
-  const div = document.querySelector("#astro-nav-buttons");
-  div.innerHTML = "";
-
-  const btnPrev = document.createElement("button");
-  btnPrev.textContent = "Prev";
-  if (!astroCache.onFirstPage()) {
-    btnPrev.addEventListener("click", handleClickPrev);
+const toggleNavButtons = (enable) => {
+  // always disable the nav buttons after click to give visible feedback to user
+  //  and to avoid conflict with async fetch (clicking next more than once)
+  // enable the buttons if right conditions are met
+  if (enable) {
+    if (!astroCache.onFirstPage()) {
+      document.querySelector("#btn-astro-prev").removeAttribute("disabled")
+    }
+    if (!astroCache.onLastPage()) {
+      document.querySelector("#btn-astro-next").removeAttribute("disabled")
+    }
   }
-  div.append(btnPrev);
-
-  const btnNext = document.createElement("button");
-  btnNext.textContent = "Next";
-  if (!astroCache.onLastPage()) {
-    btnNext.addEventListener("click", handleClickNext);
+  // disable the buttons 
+  else {
+    document.querySelector("#btn-astro-prev").setAttribute("disabled", true)
+    document.querySelector("#btn-astro-next").setAttribute("disabled", true)
   }
-  div.append(btnNext);
-  
+
 }
 
 function handleClickNext(event) {
-  console.log("Next button clicked");
-  // disable button so user does not trigger multiple simultaneous fetches!
-  event.target.setAttribute("disabled", true);
   astroCache.nextPage();
 }
 
 function handleClickPrev(event) {
-  console.log("Prev button clicked");
   astroCache.prevPage();
 }
 
@@ -162,9 +160,9 @@ const renderAstronaut = (item, row) => {
   // for dates, only show the year, full date is really kind of meaningless, all we want to do is 
   // give the user an idea of person's age and flight experience
   row.innerHTML = `<td>${item.name}</td>`
-    + `<td>${item.date_of_birth.slice(0,4)}</td>`
-    + `<td>${item.first_flight.slice(0,4)}</td>`
-    + `<td>${item.last_flight.slice(0,4)}</td>`;
+    + `<td>${item.date_of_birth.slice(0, 4)}</td>`
+    + `<td>${item.first_flight.slice(0, 4)}</td>`
+    + `<td>${item.last_flight.slice(0, 4)}</td>`;
   row.dataset.part = "astronaut";
   row.dataset.id = item.id;
   row.dataset.name = item.name;
@@ -229,8 +227,8 @@ const allowPart = (mission, name) => {
           alert("Sorry, Starship rocket needs no boosters!");
           return false;
         }
-        if ( (falconHeavyReady(rocketPart) && threeBoosters(mission))
-              || (!falconHeavyReady(rocketPart) && partReady(mission, "booster")) ) {
+        if ((falconHeavyReady(rocketPart) && threeBoosters(mission))
+          || (!falconHeavyReady(rocketPart) && partReady(mission, "booster"))) {
           alert("No more boosters are needed for this mission!");
           return false;
         }
@@ -287,7 +285,7 @@ const starshipReady = (rocket) => rocket.name.toLowerCase() === "starship";
 const falconHeavyReady = (rocket) => rocket.name.toLowerCase() === "falcon heavy";
 
 const countAstronauts = (mission) => {
-  let astroCount = mission.reduce(function(count, element) {
+  let astroCount = mission.reduce(function (count, element) {
     element.part.toLowerCase() === "astronaut" ? count += 1 : null;
     return count;
   }, 0)
@@ -295,11 +293,11 @@ const countAstronauts = (mission) => {
 }
 
 const threeBoosters = (mission) => {
-  let boosterCount = mission.reduce(function(count, element) {
+  let boosterCount = mission.reduce(function (count, element) {
     element.part === "booster" ? count += 1 : null;
     return count;
   }, 0)
-  return boosterCount < 3 ? false : true;  
+  return boosterCount < 3 ? false : true;
 }
 
 const configurator = function () {
@@ -316,9 +314,9 @@ const configurator = function () {
     rocket: (collection) => collection.filter((item) => item.name != "Falcon 1"),
     core: (collection) => {
       return collection.filter((item) => {
-          return (item.status === "unknown" || item.status === "active")
-            && priorLaunches.find(launch => item.id === launch.coreId)
-        });
+        return (item.status === "unknown" || item.status === "active")
+          && priorLaunches.find(launch => item.id === launch.coreId)
+      });
     },
     capsule: (collection) => collection.filter((item) => item.status === "active" && parseInt(item.water_landings, 10) > 0)
     // astronaut: (collection) => collection.filter(item => item.status.name === "Active" && item.first_flight)
@@ -328,19 +326,19 @@ const configurator = function () {
 
 const astroCache = function () {
   const MAX_PAGE_SIZE = 20;
-  const API_LIMIT = 100;  
+  const API_LIMIT = 100;
   const pages = [];
   let offsetCounter = 0;
   let cachePage = 0;
+  let renderPage = 0;
   let fullCache = false;
   let fullPage = false;
-  let renderPage = 0;
 
   return {
     // only include astronauts who have flown
     // used to also filter for active, but this is now part of fetch -- item.status.name === "Active" 
     apiLimit: () => API_LIMIT,
-    nextOffset: () => offsetCounter, 
+    nextOffset: () => offsetCounter,
     cacheAstros: (collection) => {
       if (!offsetCounter) {
         // nothing in the cache yet, need to init a new page
@@ -359,38 +357,45 @@ const astroCache = function () {
       // got to end of collection, if it is less than API_LIMIT then there's
       //   no more api data, so set fullCache to avoid further fetches
       if (collection.length < API_LIMIT) {
+        fullPage = true;
         fullCache = true;
-      } 
+      }
     },
     initPage: () => {
       return {
-        offsetCounter: offsetCounter,
+        offset: offsetCounter,
         astros: []
-      } 
+      }
     },
     onLastPage: () => !astroCache.isFullCache() || renderPage != pages.length - 1 ? false : true,
-    onFirstPage: () => renderPage === 0 ? true : false, 
+    onFirstPage: () => renderPage === 0 ? true : false,
     isFullPage: () => fullPage,
     isFullCache: () => fullCache,
     advanceCache: () => {
       if (!astroCache.isFullCache()) {
-        renderPage = ++cachePage;
+        ++cachePage;
         pages.push(astroCache.initPage());
         fullPage = false;
       }
     },
     show: () => pages[renderPage].astros,
     nextPage: () => {
+      toggleNavButtons(false);
+      renderPage++;
       if (!astroCache.isFullCache()) {
         getAstronauts();
       } else {
-        renderPage++;
         renderAstronauts();
       }
     },
     prevPage: () => {
+      toggleNavButtons(false);
       renderPage--;
       renderAstronauts();
+    },
+    logStatus: (message) => {
+      console.log(`${message}\noffsetCounter=${offsetCounter}\ncachePage=${cachePage} renderPage=${renderPage}\nfullCache=${fullCache} fullPage=${fullPage}`);
+      pages.forEach(page => console.log(`${page.offset} = ${page.astros[0].name}`))
     }
   }
 
@@ -403,7 +408,7 @@ const initPriorLaunches = (launches) => {
     Simplify the data structure, e.g. avoid arrays when array only has 1 element.
   */
   showAPIData ? console.log("LAUNCHES from API", launches) : null
- 
+
   for (const launch of launches) {
     if (launch.success) {
       const prior = {
@@ -438,12 +443,13 @@ const buildAstronautURL = () => {
 const getAstronauts = () => {
   // this needs to be recursive since a single fetch does not get enough astros
   //   to fill the cache 
-    fetch(buildAstronautURL())
+  fetch(buildAstronautURL())
     .then(resp => resp.json())
     .then(result => {
       console.log("FETCH offset = ", astroCache.nextOffset());
       astroCache.cacheAstros(result.results);
-      if (result.next && !astroCache.isFullPage()) {
+      // keep fetching until cache page is full AND there is still API data 
+      if (!astroCache.isFullPage() && result.next) {
         getAstronauts();
       } else {
         renderAstronauts();
@@ -455,31 +461,34 @@ const getAstronauts = () => {
 
 document.addEventListener("DOMContentLoaded", (e) => {
   console.log("SPACEX base endpoint = ", baseSpacexURL + "launches")
-  console.log("LAUNCH LIBRARY endpoint = ", buildAstronautURL(0))  
+  console.log("LAUNCH LIBRARY endpoint = ", buildAstronautURL(0))
 
   fetch(baseSpacexURL + "launches")
-  .then(resp => resp.json())
-  .then(result => {
-    initPriorLaunches(result);
-    fetch(baseSpacexURL + "rockets")
     .then(resp => resp.json())
-    .then(result => renderRockets(configurator.rocket(result)));
-    fetch(baseSpacexURL + "cores")
-    .then(resp => resp.json())
-    .then(result => renderCores(configurator.core(result)));
-    fetch(baseSpacexURL + "capsules")
-    .then(resp => resp.json())
-    .then(capsulesData => {
-      fetch(baseSpacexURL + "dragons")
-      .then(resp => resp.json())
-      .then(dragonsData => renderCapsules(configurator.capsule(capsulesData), dragonsData));
+    .then(result => {
+      initPriorLaunches(result);
+      fetch(baseSpacexURL + "rockets")
+        .then(resp => resp.json())
+        .then(result => renderRockets(configurator.rocket(result)));
+      fetch(baseSpacexURL + "cores")
+        .then(resp => resp.json())
+        .then(result => renderCores(configurator.core(result)));
+      fetch(baseSpacexURL + "capsules")
+        .then(resp => resp.json())
+        .then(capsulesData => {
+          fetch(baseSpacexURL + "dragons")
+            .then(resp => resp.json())
+            .then(dragonsData => renderCapsules(configurator.capsule(capsulesData), dragonsData));
+        });
+      toggleNavButtons(false);
+      getAstronauts();
     });
-    getAstronauts();
-  });
 
-  const boxElement = document.querySelector(".box");
-  boxElement.addEventListener("drop", dropHandler);
-  boxElement.addEventListener("dragover", dragoverHandler);
+  let el = document.querySelector(".box");
+  el.addEventListener("drop", dropHandler);
+  el.addEventListener("dragover", dragoverHandler);
 
+  document.querySelector("#btn-astro-prev").addEventListener("click", handleClickPrev)
+  document.querySelector("#btn-astro-next").addEventListener("click", handleClickNext)
 
 })
