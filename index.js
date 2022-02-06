@@ -1,36 +1,74 @@
 // Set apiTestMode to false to use a test endpoint.
 // For everything except astronauts, the test endpoint is a local json server.
 // For astronatust, the test endpoint is on Launch Library.
-const apiTestMode = true;
+const apiTestMode = false;
 
 // Set showAPIData to console.log the result of each API fetch
 const showAPIData = false;
 const baseSpacexURL = apiTestMode ? "http://localhost:3000/" : "https://api.spacexdata.com/v4/";
 
-function dropHandler(event) {
-  const id = event.dataTransfer.getData("text/plain");
-  const droppedElement = document.querySelector(`[data-id="${id}"]`);
-  if (assembly.add(droppedElement)) {
-    const div = document.createElement("div");
-    div.className = "mission-part";
-    const img = document.createElement("img");
-    img.className = "mission-part-img";
-    img.src = droppedElement.dataset.image;
-    div.append(img);
-    document.querySelector(".mission-assembly").append(div);
-  }
+
+/*
+Drag parts from parts list to the Vehicle Assembly Building
+Minimum requirements for drag/drop functionality are an event listener
+ for "drop" and "dragover"
+The dragStartHandler is added to each row in the parts lists at time of render
+ The id of the element to be dragged is set in the event data transfer
+*/
+
+function initDragDrop() {
+  let el = document.querySelector(".assembly");
+  el.addEventListener("drop", dropHandler);
+  el.addEventListener("dragover", dragoverHandler);
+
+}
+
+function dragstartHandler(event) {
+  showMessage("info", "Drop your part on the Vehicle Assembly Building");
+  event.dataTransfer.setData("text/plain", event.target.dataset.id);
+  event.dataTransfer.dropEffect = "copy";
 
 }
 
 function dragoverHandler(event) {
   event.preventDefault();
   event.dataTransfer.dropEffect = "copy";
+
 }
 
-function dragstartHandler(event) {
-  event.dataTransfer.setData("text/plain", event.target.dataset.id);
-  event.dataTransfer.dropEffect = "copy";
+function dropHandler(event) {
+  const id = event.dataTransfer.getData("text/plain");
+  const dropEl = document.querySelector(`[data-id="${id}"]`);
+  // add the part, then render it in the mission area
+  if (assembly.add(dropEl)) {
+    renderMission(dropEl);
+  }
 }
+
+const renderMission = (artifact) => {
+  if (artifact.dataset.part === "booster") {
+    const div = document.querySelector(".mission-caption-rocket");
+    div.textContent = `${div.textContent} + ${artifact.dataset.name}`
+  }
+  else {
+    const div = document.createElement("div");
+    div.className = "mission-part";
+    const img = document.createElement("img");
+    img.className = "mission-part-img";
+    img.src = artifact.dataset.image;
+    div.append(img);
+    const captionDiv = document.createElement("div");
+    captionDiv.className = `mission-caption-${artifact.dataset.part}`
+    captionDiv.textContent = artifact.dataset.name;
+    div.append(captionDiv);
+    document.querySelector(".mission").append(div);
+  }
+  // hide the row in the parts list
+  artifact.classList.add("row-hidden");
+  showNotice(artifact, artifact.dataset.name);
+
+}
+
 
 const renderRockets = (rockets) => {
   const tableBody = document.querySelector("#rockets-body");
@@ -53,20 +91,17 @@ const renderRocket = (rocket, row) => {
   row.className = "rocket-row";
   row.draggable = true;
   row.addEventListener("dragstart", dragstartHandler);
-  // if (rocket.name === "Starship") {
-  //   row.className = "row-hidden";
-  // }
-  // row.addEventListener("mouseover", handleRowHover);
 }
 
 const renderCores = (cores) => {
+  // note that the API uses the term "core" but the user-interface uses "booster"
   showAPIData ? console.log("CORES from API", cores) : null;
   const tableBody = document.querySelector("#cores-body");
   tableBody.innerHTML = "";
   cores.forEach(core => renderCore(core, tableBody.insertRow()));
 }
 
-// serial, flown, landed, note
+
 const renderCore = (item, row) => {
   row.innerHTML = `<td>${item.serial}</td>`
     + `<td>${item.reuse_count}</td>`
@@ -79,7 +114,7 @@ const renderCore = (item, row) => {
   row.className = "booster-row";
   row.draggable = true;
   row.addEventListener("dragstart", dragstartHandler);
-  // row.addEventListener("mouseover", handleRowHover);
+
 }
 
 const renderCapsules = (capsules, dragons) => {
@@ -128,6 +163,27 @@ const renderAstronauts = () => {
 
 }
 
+const renderAstronaut = (item, row) => {
+  // for dates, only show the year, full date is really kind of meaningless, all we want to do is 
+  // give the user an idea of person's age and flight experience
+  row.innerHTML = `<td>${item.name}</td>`
+    + `<td>${item.date_of_birth.slice(0, 4)}</td>`
+    + `<td>${item.first_flight.slice(0, 4)}</td>`
+    + `<td>${item.last_flight.slice(0, 4)}</td>`;
+  row.dataset.part = "astronaut";
+  row.dataset.id = item.id;
+  row.dataset.name = item.name;
+  row.dataset.image = item.profile_image;
+  row.className = "astronaut-row";
+  row.draggable = true;
+  row.addEventListener("dragstart", dragstartHandler);
+  // hide the row if astronaut is already included in mission
+  if (assembly.includes(item.id)) {
+    console.log("HIDE HIDE HIDE")
+    row.classList.add("row-hidden");
+  }
+}
+
 const toggleNavButtons = (enable) => {
   // always disable the nav buttons after click to give visible feedback to user
   //  and to avoid conflict with async fetch (clicking next more than once)
@@ -156,38 +212,14 @@ function handleClickPrev(event) {
   astroCache.prevPage();
 }
 
-const renderAstronaut = (item, row) => {
-  // for dates, only show the year, full date is really kind of meaningless, all we want to do is 
-  // give the user an idea of person's age and flight experience
-  row.innerHTML = `<td>${item.name}</td>`
-    + `<td>${item.date_of_birth.slice(0, 4)}</td>`
-    + `<td>${item.first_flight.slice(0, 4)}</td>`
-    + `<td>${item.last_flight.slice(0, 4)}</td>`;
-  row.dataset.part = "astronaut";
-  row.dataset.id = item.id;
-  row.dataset.name = item.name;
-  row.dataset.image = item.profile_image;
-  row.className = "astronaut-row";
-  row.draggable = true;
-  row.addEventListener("dragstart", dragstartHandler);
-
-}
 
 const assembly = function () {
-  /* 
-    assembly() maintains mission parts.
-    Intializes an empty object with crew array to simplify the logic.
-    "crew" is the only key with multiple values.
-    Coded another version of this allowing any key to have multiple values
-      (value is a string if only 1, or an array if > 1) but code become more 
-      complicated and decided instead to do it this way with separate methods
-      for adding and deleting crew.
-  */
-
+  // assembly() maintains mission parts in mission[] after user drags and drops
   const mission = [];
   return {
     add: (element) => {
       console.log("MISSION:", mission)
+      // check first to see if the part is allowed
       if (allowPart(mission, element.dataset.part)) {
         mission.push({
           id: element.dataset.id,
@@ -203,33 +235,55 @@ const assembly = function () {
     },
     delete: (partName) => delete mission[partName],
     show: () => mission,
-    // addCrew: (newCrew) => mission.crew.push(newCrew),
-    // deleteCrew: (oldCrew) => mission.crew = mission.crew.filter(item => item != oldCrew)
+    // includes find() must use == as mission id is string, but value passed from render is number
+    includes: (partId) => mission.find(part => part.id == partId),
   }
 }();
+
+const showMessage = (type, text) => {
+  const el = document.querySelector(".message");
+  el.textContent = text;
+  el.classList.remove("message-alert", "message-info", "message-notice");
+  switch (type) {
+    case "alert":
+      el.classList.add("message-alert");
+      break;
+    case "info":
+      el.classList.add("message-info");
+      break;
+    case "notice":
+      el.classList.add("message-notice")
+  }
+}
+
+const showNotice = (part, partName) => {
+  if (partName === "Falcon Heavy") {
+    showMessage("notice", "Please note, the Falcon Heavy rocket requires 3 boosters");
+  }
+}
 
 const allowPart = (mission, name) => {
   let rocketPart = partReady(mission, "rocket");
   switch (name) {
     case "rocket":
       if (rocketPart) {
-        alert("Sorry, only 1 rocket allowed per mission!");
+        showMessage("alert", "Sorry, only 1 rocket allowed per mission!");
         return false;
       }
       break;
     case "booster":
       if (!rocketPart) {
-        alert("Please pick a rocket before you pick a booster.")
+        showMessage("alert", "Please pick a rocket before you pick a booster.")
         return false;
       }
       else {
         if (starshipReady(rocketPart)) {
-          alert("Sorry, Starship rocket needs no boosters!");
+          showMessage("alert", "Sorry, Starship rocket needs no boosters!");
           return false;
         }
         if ((falconHeavyReady(rocketPart) && threeBoosters(mission))
           || (!falconHeavyReady(rocketPart) && partReady(mission, "booster"))) {
-          alert("No more boosters are needed for this mission!");
+          showMessage("alert", "No more boosters are needed for this mission!");
           return false;
         }
       }
@@ -237,20 +291,20 @@ const allowPart = (mission, name) => {
     case "capsule":
       let boosterPart = partReady(mission, "booster");
       if (starshipReady(rocketPart)) {
-        alert("Sorry, Starship rocket has its own capsule!");
+        showMessage("alert", "Sorry, Starship rocket has its own capsule!");
         return false;
       }
       if (!boosterPart) {
-        alert("Please pick a booster before you pick a capsule.")
+        showMessage("alert", "Please pick a booster before you pick a capsule.")
         return false;
       }
       else {
         if (falconHeavyReady(rocketPart) && !threeBoosters(mission)) {
-          alert("Falcon Heavy requires 3 boosters, please pick more boosters!")
+          showMessage("alert", "Falcon Heavy requires 3 boosters, please pick more boosters!")
           return false;
         }
         if (partReady(mission, "capsule")) {
-          alert("Sorry, only 1 capsule allowed per mission!");
+          showMessage("alert", "Sorry, only 1 capsule allowed per mission!");
           return false;
         }
       }
@@ -259,15 +313,15 @@ const allowPart = (mission, name) => {
       let capsulePart = partReady(mission, "capsule");
       if (capsulePart) {
         if (capsulePart.name.toLowerCase().includes("cargo")) {
-          alert("Cargo Dragon has no seats for astronauts!");
+          showMessage("alert", "Cargo Dragon has no seats for astronauts!");
           return false;
         }
       } else if (!rocketPart || !starshipReady(rocketPart)) {
-        alert("Please pick a capsule before you pick astronauts");
+        showMessage("alert", "Please pick a capsule before you pick astronauts");
         return false;
       }
       if (countAstronauts(mission) === 3) {
-        alert("Sorry, no more than 3 astronauts allowed per mission!");
+        showMessage("alert", "Sorry, no more than 3 astronauts allowed per mission!");
         return false;
       }
       break;
@@ -327,12 +381,17 @@ const configurator = function () {
 const astroCache = function () {
   const MAX_PAGE_SIZE = 20;
   const API_LIMIT = 100;
-  const pages = [];
   let offsetCounter = 0;
   let cachePage = 0;
   let renderPage = 0;
   let fullCache = false;
   let fullPage = false;
+
+  // initialize the first page of the cache
+  const pages = [{
+    offset: offsetCounter,
+    astros: []
+  }];
 
   return {
     // only include astronauts who have flown
@@ -340,10 +399,6 @@ const astroCache = function () {
     apiLimit: () => API_LIMIT,
     nextOffset: () => offsetCounter,
     cacheAstros: (collection) => {
-      if (!offsetCounter) {
-        // nothing in the cache yet, need to init a new page
-        pages.push(astroCache.initPage());
-      }
       for (const item of collection) {
         offsetCounter++;
         if (item.status.name === "Active" && item.first_flight) {
@@ -361,28 +416,24 @@ const astroCache = function () {
         fullCache = true;
       }
     },
-    initPage: () => {
-      return {
-        offset: offsetCounter,
-        astros: []
-      }
-    },
     onLastPage: () => !astroCache.isFullCache() || renderPage != pages.length - 1 ? false : true,
     onFirstPage: () => renderPage === 0 ? true : false,
     isFullPage: () => fullPage,
     isFullCache: () => fullCache,
-    advanceCache: () => {
-      if (!astroCache.isFullCache()) {
-        ++cachePage;
-        pages.push(astroCache.initPage());
-        fullPage = false;
-      }
-    },
     show: () => pages[renderPage].astros,
+    advanceCache: () => {
+      ++cachePage;
+      fullPage = false;
+      pages.push({
+        offset: offsetCounter,
+        astros: []
+      });
+    },
     nextPage: () => {
       toggleNavButtons(false);
       renderPage++;
       if (!astroCache.isFullCache()) {
+        astroCache.advanceCache();
         getAstronauts();
       } else {
         renderAstronauts();
@@ -453,7 +504,6 @@ const getAstronauts = () => {
         getAstronauts();
       } else {
         renderAstronauts();
-        astroCache.advanceCache();
       }
     });
 
@@ -484,9 +534,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
       getAstronauts();
     });
 
-  let el = document.querySelector(".box");
-  el.addEventListener("drop", dropHandler);
-  el.addEventListener("dragover", dragoverHandler);
+  initDragDrop();
 
   document.querySelector("#btn-astro-prev").addEventListener("click", handleClickPrev)
   document.querySelector("#btn-astro-next").addEventListener("click", handleClickNext)

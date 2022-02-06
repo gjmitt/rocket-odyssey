@@ -9,82 +9,96 @@
   <title>Rocket Odyssey</title>
 </head>
 
-  <body>
+<body>
 
-    <!-- start div main-container-->
-    <div class="main-container">  
-      <div id="left-col">column 1
-        <h2>Rockets</h2>
-        <table id="rockets-table">
-          <thead>
-            <th>Name</th>
-            <th>Cost</th>
-            <th>Engines</th>
-            <th>1st Flight</th>
-            <th>Success Rate</th>
-          </thead>
-          <tbody id="rockets-body">
-          </tbody>
-        </table>
-        <h2>Boosters</h2>
-        <table id="cores-table">
-          <thead>
-            <th>Serial</th>
-            <th>Flown</th>
-            <th>Landed</th>
-            <th>Note</th> 
-          </thead>
-          <tbody id="cores-body">
-          </tbody>
-        </table>
-        <h2>Capsules</h2>
-        <table id="capsules-table">
-          <thead>
-            <th>Type</th>
-            <th>Serial</th>
-            <th>Flown</th>
-            <th>Landed</th>
-          </thead>
-          <tbody id="capsules-body">
-          </tbody>
-        </table>
+  <!-- start div main-container-->
+  <div class="main-container">
+    <div class="header">
+      <h1>Rocket Odyssey</h1>
+    </div>
+    <div class="message">
+      To get started, drag a Rocket to the Vehicle Assembly Building to build a Mission.
+    </div>
+    <div class="row3-left"></div>
+    <div class="assembly">
+      Vehicle Assembly Building
+    </div>
 
-      </div>  
-      <!-- end left-col -->
-
-      <!-- start middle-col -->
-      <div id="middle-col">column 2
-        <div class="box">drop here</div>
-        <div class="mission-assembly"></div>
-      </div>
-      <!-- end middle-col -->
-
-      <!-- start right-col -->
-      <div id="right-col">column 3
-        <h2>Astronauts</h2>
-        <div class="nav-buttons">
-          <button id="btn-astro-prev" disabled>Prev</button>
-          <button id="btn-astro-next" disabled>Next</button>
-        </div>
-        <table id="astros-table">
-          <thead>
-            <th>Name</th>
-            <th>DOB</th>
-            <th>1st Flight</th>
-            <th>Last Flight</th>
-          </thead>
-          <tbody id="astros-body">
-          </tbody>
-        </table>
-        <div id="astro-nav-buttons"></div>
-      </div>
-      <!-- end right-col -->
-
+    <div class="row3-right"></div>
+    <!-- start div parts-left-->
+    <div class="parts-left">
+      <h2>Rockets</h2>
+      <table id="rockets-table">
+        <thead>
+          <th>Name</th>
+          <th>Cost</th>
+          <th>Engines</th>
+          <th>1st Flight</th>
+          <th>Success Rate</th>
+        </thead>
+        <tbody id="rockets-body">
+        </tbody>
+      </table>
+      <h2>Boosters</h2>
+      <table id="cores-table">
+        <thead>
+          <th>Serial</th>
+          <th>Flown</th>
+          <th>Landed</th>
+          <th>Note</th>
+        </thead>
+        <tbody id="cores-body">
+        </tbody>
+      </table>
+      <h2>Capsules</h2>
+      <table id="capsules-table">
+        <thead>
+          <th>Type</th>
+          <th>Serial</th>
+          <th>Flown</th>
+          <th>Landed</th>
+        </thead>
+        <tbody id="capsules-body">
+        </tbody>
+      </table>
 
     </div>
-    <!-- end div main-container-->
+    <!-- end div parts-left-->
+
+    <!-- start div mission -->
+    <div class="mission">
+      <h2>Mission</h2>
+    </div>
+    <!-- end div mission -->
+
+    <!-- start div parts-right -->
+    <div class="parts-right">
+      <h2>Astronauts</h2>
+      <div class="nav-buttons">
+        <button id="btn-astro-prev" disabled>Prev</button>
+        <button id="btn-astro-next" disabled>Next</button>
+      </div>
+      <table id="astros-table">
+        <thead>
+          <th>Name</th>
+          <th>DOB</th>
+          <th>1st Flight</th>
+          <th>Last Flight</th>
+        </thead>
+        <tbody id="astros-body">
+        </tbody>
+      </table>
+      <div id="astro-nav-buttons"></div>
+    </div>
+    <!-- end div parts-right -->
+
+    <div class="footer"></div>
+
+  </div>
+  <!-- end div main-container-->
 
   <script type="text/javascript" src="index.js"></script>
 
 </body>
+
 </html>

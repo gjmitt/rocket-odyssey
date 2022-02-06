@@ -1,7 +1,54 @@
+div {
+  padding: 5px;
+}
+
 .main-container {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 20px;  
+  grid-gap: 5px;
+  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-rows: 60px 40px 40px 1fr;
+  grid-template-areas: "header      header    header"
+                       "message     message   message"
+                       "misc-left   assembly  misc-right"
+                       "parts-left  mission   parts-right"
+                       "footer      footer    footer"
+}
+
+.header {
+  grid-area: header;
+}
+
+.message {
+  grid-area: message;
+}
+
+.misc-left {
+  grid-area: misc-left;
+}
+
+.assembly {
+  grid-area: assembly;
+  border: 5px solid gray;
+}
+
+.misc-right {
+  grid-area: misc-right;
+}
+
+.parts-left {
+  grid-area: parts-left;
+}
+
+.mission {
+  grid-area: mission;
+}
+
+.parts-right {
+  grid-area: parts-right;
+}
+
+.footer {
+  grid-area: footer;
 }
 
 table {
@@ -17,12 +64,6 @@ td {
   border: 1px solid #000;
 }
 
-.box {
-  border: 5px solid red;
-  height: 200px;
-  width: 200px;
-}
-
 .mission-part {
   text-align: center;
   border: grey solid 1px;
@@ -30,7 +71,7 @@ td {
   height: 20rem;
   width: 20rem;
   display: inline-grid;
-  margin: 1rem 2rem;
+  margin: 1rem;
 }
 
 .mission-part-img {
@@ -42,3 +83,17 @@ td {
 .row-hidden {
   visibility: collapse;
 }
+
+.message-alert {
+  background-color: lightcoral;
+}
+
+.message-info {
+  background-color: transparent;
+}
+
+.message-notice {
+  background-color: lightgreen;
+}
+
+
