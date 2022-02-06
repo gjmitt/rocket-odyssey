@@ -4,14 +4,13 @@ div {
 
 .main-container {
   display: grid;
-  grid-gap: 5px;
-  grid-template-columns: 1fr 2fr 1fr;
-  grid-template-rows: 60px 40px 40px 1fr;
-  grid-template-areas: "header      header    header"
-                       "message     message   message"
-                       "misc-left   assembly  misc-right"
-                       "parts-left  mission   parts-right"
-                       "footer      footer    footer"
+  grid-gap: 10px;
+  grid-template-columns: 1fr 80px 2fr 1fr;
+  grid-template-rows: 60px 40px 1fr 40px;
+  grid-template-areas: "header    header  header    header"
+                       "message    message  message   message"
+                       "parts-left  assembly mission   parts-right"
+                       "footer      footer footer    footer"
 }
 
 .header {
@@ -22,21 +21,17 @@ div {
   grid-area: message;
 }
 
-.misc-left {
-  grid-area: misc-left;
+.parts-left {
+  grid-area: parts-left;
 }
 
 .assembly {
   grid-area: assembly;
   border: 5px solid gray;
-}
-
-.misc-right {
-  grid-area: misc-right;
-}
-
-.parts-left {
-  grid-area: parts-left;
+  writing-mode: vertical-lr;
+  text-orientation: upright;
+  text-align: center;
+  letter-spacing: .5rem;
 }
 
 .mission {

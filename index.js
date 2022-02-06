@@ -1,7 +1,7 @@
 // Set apiTestMode to false to use a test endpoint.
 // For everything except astronauts, the test endpoint is a local json server.
 // For astronatust, the test endpoint is on Launch Library.
-const apiTestMode = false;
+const apiTestMode = true;
 
 // Set showAPIData to console.log the result of each API fetch
 const showAPIData = false;
@@ -61,11 +61,12 @@ const renderMission = (artifact) => {
     captionDiv.className = `mission-caption-${artifact.dataset.part}`
     captionDiv.textContent = artifact.dataset.name;
     div.append(captionDiv);
-    document.querySelector(".mission").append(div);
+    document.querySelector(".mission-stack").append(div);
   }
   // hide the row in the parts list
   artifact.classList.add("row-hidden");
   showNotice(artifact, artifact.dataset.name);
+  document.querySelector("#btn-reset-mission").removeAttribute("disabled")
 
 }
 
@@ -206,12 +207,13 @@ const toggleNavButtons = (enable) => {
 
 function handleClickNext(event) {
   astroCache.nextPage();
+
 }
 
 function handleClickPrev(event) {
   astroCache.prevPage();
-}
 
+}
 
 const assembly = function () {
   // assembly() maintains mission parts in mission[] after user drags and drops
@@ -237,8 +239,28 @@ const assembly = function () {
     show: () => mission,
     // includes find() must use == as mission id is string, but value passed from render is number
     includes: (partId) => mission.find(part => part.id == partId),
+    reset: () => {
+      // make visible any parts hidden (that are in the mission)
+      let row;
+      while (row = document.querySelector(".row-hidden")) {
+        row.classList.remove("row-hidden");
+      }
+      mission.length = 0;
+      document.querySelector(".mission-stack").innerHTML = "";
+      showStartMessage();
+    }
   }
 }();
+
+const showStartMessage = () => {
+  showMessage("notice", "To get started, drag a Rocket to the Vehicle Assembly Building to build a Mission.")
+}
+
+const showNotice = (part, partName) => {
+  if (partName === "Falcon Heavy") {
+    showMessage("notice", "Please note, the Falcon Heavy rocket requires 3 boosters");
+  }
+}
 
 const showMessage = (type, text) => {
   const el = document.querySelector(".message");
@@ -253,12 +275,7 @@ const showMessage = (type, text) => {
       break;
     case "notice":
       el.classList.add("message-notice")
-  }
-}
-
-const showNotice = (part, partName) => {
-  if (partName === "Falcon Heavy") {
-    showMessage("notice", "Please note, the Falcon Heavy rocket requires 3 boosters");
+      break;
   }
 }
 
@@ -504,15 +521,20 @@ const getAstronauts = () => {
         getAstronauts();
       } else {
         renderAstronauts();
+        initHandlers();
       }
     });
 
 }
 
-document.addEventListener("DOMContentLoaded", (e) => {
-  console.log("SPACEX base endpoint = ", baseSpacexURL + "launches")
-  console.log("LAUNCH LIBRARY endpoint = ", buildAstronautURL(0))
+const handleClickResetMission = () => {
+  assembly.reset();
+  while (!astroCache.onFirstPage()) {
+    astroCache.prevPage();
+  }
+}
 
+const fetchParts = () => {
   fetch(baseSpacexURL + "launches")
     .then(resp => resp.json())
     .then(result => {
@@ -534,9 +556,20 @@ document.addEventListener("DOMContentLoaded", (e) => {
       getAstronauts();
     });
 
-  initDragDrop();
+}
 
+const initHandlers = () => {
+  showStartMessage();
+  initDragDrop();
   document.querySelector("#btn-astro-prev").addEventListener("click", handleClickPrev)
   document.querySelector("#btn-astro-next").addEventListener("click", handleClickNext)
+  document.querySelector("#btn-reset-mission").addEventListener("click", handleClickResetMission);
+
+}
+
+document.addEventListener("DOMContentLoaded", (e) => {
+  console.log("SPACEX base endpoint = ", baseSpacexURL + "launches")
+  console.log("LAUNCH LIBRARY endpoint = ", buildAstronautURL(0))
+  fetchParts();
 
 })

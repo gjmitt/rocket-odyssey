@@ -17,14 +17,10 @@
       <h1>Rocket Odyssey</h1>
     </div>
     <div class="message">
-      To get started, drag a Rocket to the Vehicle Assembly Building to build a Mission.
+      Please wait, fetching rocket parts ...
     </div>
-    <div class="row3-left"></div>
-    <div class="assembly">
-      Vehicle Assembly Building
-    </div>
+    <div class="assembly"><br>VEHICLE ASSEMBLY BUILDING</div>
 
-    <div class="row3-right"></div>
     <!-- start div parts-left-->
     <div class="parts-left">
       <h2>Rockets</h2>
@@ -67,7 +63,8 @@
 
     <!-- start div mission -->
     <div class="mission">
-      <h2>Mission</h2>
+        <h2>Mission</h2><button id="btn-reset-mission" disabled>RESET MISSION</button>
+        <div class="mission-stack"></div>
     </div>
     <!-- end div mission -->
 
@@ -75,8 +72,8 @@
     <div class="parts-right">
       <h2>Astronauts</h2>
       <div class="nav-buttons">
-        <button id="btn-astro-prev" disabled>Prev</button>
-        <button id="btn-astro-next" disabled>Next</button>
+        <button id="btn-astro-prev" disabled>PREV</button>
+        <button id="btn-astro-next" disabled>NEXT</button>
       </div>
       <table id="astros-table">
         <thead>
