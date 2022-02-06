@@ -14,39 +14,37 @@
   <!-- start div main-container-->
   <div class="main-container">
     <div class="header">
-      <h1>Rocket Odyssey</h1>
+      Rocket Odyssey
     </div>
     <div class="message">
-      Please wait, fetching rocket parts ...
     </div>
     <div class="assembly"><br>VEHICLE ASSEMBLY BUILDING</div>
 
     <!-- start div parts-left-->
     <div class="parts-left">
-      <h2>Rockets</h2>
+      <span class="listing-heading">Rockets</span>
       <table id="rockets-table">
         <thead>
           <th>Name</th>
-          <th>Cost</th>
           <th>Engines</th>
           <th>1st Flight</th>
-          <th>Success Rate</th>
         </thead>
         <tbody id="rockets-body">
         </tbody>
       </table>
-      <h2>Boosters</h2>
+      <br>
+      <span class="listing-heading">Boosters</span>
       <table id="cores-table">
         <thead>
           <th>Serial</th>
           <th>Flown</th>
-          <th>Landed</th>
           <th>Note</th>
         </thead>
         <tbody id="cores-body">
         </tbody>
       </table>
-      <h2>Capsules</h2>
+      <br>
+      <span class="listing-heading">Capsules</span>
       <table id="capsules-table">
         <thead>
           <th>Type</th>
@@ -63,18 +61,19 @@
 
     <!-- start div mission -->
     <div class="mission">
-        <h2>Mission</h2><button id="btn-reset-mission" disabled>RESET MISSION</button>
-        <div class="mission-stack"></div>
+      <span class="listing-heading">Mission</span>
+      <span><button id="btn-reset-mission" disabled>RESET MISSION</button></span>
+      <div class="mission-stack"></div>
     </div>
     <!-- end div mission -->
 
     <!-- start div parts-right -->
     <div class="parts-right">
-      <h2>Astronauts</h2>
-      <div class="nav-buttons">
+      <span class="listing-heading">Astronauts</span>
+      <span>
         <button id="btn-astro-prev" disabled>PREV</button>
         <button id="btn-astro-next" disabled>NEXT</button>
-      </div>
+      </span>
       <table id="astros-table">
         <thead>
           <th>Name</th>

@@ -5,20 +5,26 @@ div {
 .main-container {
   display: grid;
   grid-gap: 10px;
-  grid-template-columns: 1fr 80px 2fr 1fr;
-  grid-template-rows: 60px 40px 1fr 40px;
-  grid-template-areas: "header    header  header    header"
-                       "message    message  message   message"
-                       "parts-left  assembly mission   parts-right"
-                       "footer      footer footer    footer"
+  grid-template-columns: 1fr 1fr 80px 1.5fr;
+  grid-template-rows: 40px 1fr 40px;
+  grid-template-areas:  "header     message     message   message"
+                        "parts-left parts-right assembly  mission"
+                        "footer     footer      footer    footer"
 }
 
 .header {
   grid-area: header;
+  font-size: 1.75rem;
+  font-weight: bold;
+  background-color: skyblue;
+  padding: 3px;
 }
 
 .message {
   grid-area: message;
+  font-size: 1.2rem;
+  padding: 7px;
+  margin: 2px;
 }
 
 .parts-left {
@@ -51,7 +57,7 @@ table {
 }
 
 th, td {
-  font-size: .875em;
+  font-size: .875rem;
   padding: .5em .75em;
 }
 
@@ -63,15 +69,16 @@ td {
   text-align: center;
   border: grey solid 1px;
   padding: 1rem;
-  height: 20rem;
-  width: 20rem;
+  height: 10rem;
+  width: 12rem;
   display: inline-grid;
   margin: 1rem;
+  font-size: .875rem;
 }
 
 .mission-part-img {
-  height: 19rem;
-  width: 19rem;
+  height: 9rem;
+  width: 12rem;
   object-fit: contain;
 }
 
@@ -91,4 +98,18 @@ td {
   background-color: lightgreen;
 }
 
+.booster-name {
+  background-color: lightgray;
+  margin-left: 1px;
+  font-size: .750rem;
+}
 
+.listing-heading {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.page-heading {
+  font-size: 1.75rem;
+  font-weight: bold;
+}

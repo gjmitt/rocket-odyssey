@@ -1,54 +1,122 @@
-// Set apiTestMode to false to use a test endpoint.
-// For everything except astronauts, the test endpoint is a local json server.
-// For astronatust, the test endpoint is on Launch Library.
-const apiTestMode = true;
+// Set apiTestMode... to false to use a test endpoint.
+// For rockets, boosters, and capsules, the test endpoint is a local json server.
+// For astronauts, the test endpoint is on Launch Library.
+const apiTestModeSpaceX = false;
+const apiTestModeAstros = true;
 
 // Set showAPIData to console.log the result of each API fetch
 const showAPIData = false;
-const baseSpacexURL = apiTestMode ? "http://localhost:3000/" : "https://api.spacexdata.com/v4/";
+const baseSpacexURL = apiTestModeSpaceX ? "http://localhost:3000/" : "https://api.spacexdata.com/v4/";
 
-
-/*
-Drag parts from parts list to the Vehicle Assembly Building
-Minimum requirements for drag/drop functionality are an event listener
- for "drop" and "dragover"
-The dragStartHandler is added to each row in the parts lists at time of render
- The id of the element to be dragged is set in the event data transfer
+/* ++++ Messaging ++++ 
+  Messages are shown at the top of the window to provide instructions,
+  notices and alerts, etc.
 */
-
-function initDragDrop() {
-  let el = document.querySelector(".assembly");
-  el.addEventListener("drop", dropHandler);
-  el.addEventListener("dragover", dragoverHandler);
-
+const showStandardMessage = () => {
+  showMessage("notice", "Drag parts to the Vehicle Assembly Building to build a Mission.")
 }
 
-function dragstartHandler(event) {
-  showMessage("info", "Drop your part on the Vehicle Assembly Building");
-  event.dataTransfer.setData("text/plain", event.target.dataset.id);
-  event.dataTransfer.dropEffect = "copy";
-
-}
-
-function dragoverHandler(event) {
-  event.preventDefault();
-  event.dataTransfer.dropEffect = "copy";
-
-}
-
-function dropHandler(event) {
-  const id = event.dataTransfer.getData("text/plain");
-  const dropEl = document.querySelector(`[data-id="${id}"]`);
-  // add the part, then render it in the mission area
-  if (assembly.add(dropEl)) {
-    renderMission(dropEl);
+const showNotice = (part, partName) => {
+  if (partName === "Falcon Heavy") {
+    showMessage("notice", "Please note, the Falcon Heavy rocket requires 3 boosters");
   }
 }
 
+const showMessage = (type, text) => {
+  // display the message and clear background color
+  const el = document.querySelector(".message");
+  el.textContent = text;
+  el.classList.remove("message-alert", "message-info", "message-notice");
+  // add background color
+  switch (type) {
+    case "alert":
+      el.classList.add("message-alert");
+      break;
+    case "info":
+      el.classList.add("message-info");
+      break;
+    case "notice":
+      el.classList.add("message-notice")
+      break;
+  }
+}
+
+/* ++++ Drag and Drop handlers ++++
+  Drag parts from parts list to the Vehicle Assembly Building
+  Minimum requirements for drag/drop functionality are an event listener
+  for "drop" and "dragover"
+  The dragStartHandler is added to each row in the parts lists at time of render
+  The id of the element to be dragged is set in the event data transfer
+*/
+const initDragDrop = () => {
+  let el = document.querySelector(".assembly");
+  el.addEventListener("drop", dropHandler);
+  el.addEventListener("dragover", dragoverHandler);
+}
+
+const dragstartHandler = (event) => {
+  event.dataTransfer.setData("text/plain", event.target.dataset.id);
+  event.dataTransfer.dropEffect = "copy";
+}
+
+const dragoverHandler = (event) => {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "copy";
+}
+
+const dropHandler = (event) => {
+  const id = event.dataTransfer.getData("text/plain");
+  const dropEl = document.querySelector(`[data-id="${id}"]`);
+  // add the part, then render it in the mission area
+  if (mission.add(dropEl)) {
+    renderMission(dropEl);
+    showStandardMessage();
+  }
+}
+
+/* ++++ Button Handlers ++++ */
+const clickResetMissionHandler = () => {
+  mission.reset();
+  //* backup astronauts list to first page
+  while (!astroCache.onFirstPage()) {
+    astroCache.prevPage();
+  }
+}
+
+const clickNextHandler = (event) => {
+  astroCache.nextPage();
+}
+
+const clickPrevHandler = (event) => {
+  astroCache.prevPage();
+}
+
+const toggleNavButtons = (enable) => {
+  // Always disable the nav buttons after click to give visible feedback to user
+  //  and to avoid conflict with async fetch (clicking next more than once).
+  // Enable the buttons if right conditions are met.
+  if (enable) {
+    if (!astroCache.onFirstPage()) {
+      document.querySelector("#btn-astro-prev").removeAttribute("disabled")
+    }
+    if (!astroCache.onLastPage()) {
+      document.querySelector("#btn-astro-next").removeAttribute("disabled")
+    }
+  }
+  // disable the buttons 
+  else {
+    document.querySelector("#btn-astro-prev").setAttribute("disabled", true)
+    document.querySelector("#btn-astro-next").setAttribute("disabled", true)
+  }
+}
+
+/* ++++ Render ++++ */
 const renderMission = (artifact) => {
   if (artifact.dataset.part === "booster") {
+    // there are no images for boosters, so simply show booster name with rocket name  
     const div = document.querySelector(".mission-caption-rocket");
-    div.textContent = `${div.textContent} + ${artifact.dataset.name}`
+    // div.textContent = `${div.textContent} + ${artifact.dataset.name}`
+    div.innerHTML = div.innerHTML + `<span class="booster-name">${artifact.dataset.name}</span>`
   }
   else {
     const div = document.createElement("div");
@@ -58,8 +126,8 @@ const renderMission = (artifact) => {
     img.src = artifact.dataset.image;
     div.append(img);
     const captionDiv = document.createElement("div");
-    captionDiv.className = `mission-caption-${artifact.dataset.part}`
-    captionDiv.textContent = artifact.dataset.name;
+    captionDiv.innerHTML = `
+    <span class="mission-caption-${artifact.dataset.part}">${artifact.dataset.name}</span>`
     div.append(captionDiv);
     document.querySelector(".mission-stack").append(div);
   }
@@ -67,9 +135,7 @@ const renderMission = (artifact) => {
   artifact.classList.add("row-hidden");
   showNotice(artifact, artifact.dataset.name);
   document.querySelector("#btn-reset-mission").removeAttribute("disabled")
-
 }
-
 
 const renderRockets = (rockets) => {
   const tableBody = document.querySelector("#rockets-body");
@@ -81,10 +147,10 @@ const renderRockets = (rockets) => {
 
 const renderRocket = (rocket, row) => {
   row.innerHTML = `<td>${rocket.name}</td>`
-    + `<td>${rocket.cost_per_launch}</td>`
+    // + `<td>${rocket.cost_per_launch}</td>`
     + `<td>${rocket.engines.type}(${rocket.engines.number})</td>`
-    + `<td>${rocket.first_flight}</td>`
-    + `<td>${rocket.success_rate_pct}</td>`;
+    + `<td>${rocket.first_flight}</td>`;
+  //    + `<td>${rocket.success_rate_pct}</td>`;
   row.dataset.part = "rocket";
   row.dataset.id = rocket.id;
   row.dataset.name = rocket.name;
@@ -94,19 +160,17 @@ const renderRocket = (rocket, row) => {
   row.addEventListener("dragstart", dragstartHandler);
 }
 
-const renderCores = (cores) => {
-  // note that the API uses the term "core" but the user-interface uses "booster"
+const renderBoosters = (cores) => {
   showAPIData ? console.log("CORES from API", cores) : null;
   const tableBody = document.querySelector("#cores-body");
   tableBody.innerHTML = "";
-  cores.forEach(core => renderCore(core, tableBody.insertRow()));
+  cores.forEach(core => renderBooster(core, tableBody.insertRow()));
 }
 
-
-const renderCore = (item, row) => {
+const renderBooster = (item, row) => {
   row.innerHTML = `<td>${item.serial}</td>`
     + `<td>${item.reuse_count}</td>`
-    + `<td>${item.asds_landings}</td>`
+    // + `<td>${item.asds_landings}</td>`
     + `<td>${item.last_update}</td>`;
   row.dataset.part = "booster";
   row.dataset.id = item.id;
@@ -115,7 +179,6 @@ const renderCore = (item, row) => {
   row.className = "booster-row";
   row.draggable = true;
   row.addEventListener("dragstart", dragstartHandler);
-
 }
 
 const renderCapsules = (capsules, dragons) => {
@@ -148,7 +211,6 @@ const renderCapsule = (item, dragon, row) => {
   row.className = "capsule-row";
   row.draggable = true;
   row.addEventListener("dragstart", dragstartHandler);
-  // row.addEventListener("mouseover", handleRowHover);
 }
 
 const renderAstronauts = () => {
@@ -161,7 +223,6 @@ const renderAstronauts = () => {
   })
   // enable nav buttons
   toggleNavButtons(true);
-
 }
 
 const renderAstronaut = (item, row) => {
@@ -179,51 +240,21 @@ const renderAstronaut = (item, row) => {
   row.draggable = true;
   row.addEventListener("dragstart", dragstartHandler);
   // hide the row if astronaut is already included in mission
-  if (assembly.includes(item.id)) {
+  if (mission.includes(item.id)) {
     console.log("HIDE HIDE HIDE")
     row.classList.add("row-hidden");
   }
 }
 
-const toggleNavButtons = (enable) => {
-  // always disable the nav buttons after click to give visible feedback to user
-  //  and to avoid conflict with async fetch (clicking next more than once)
-  // enable the buttons if right conditions are met
-  if (enable) {
-    if (!astroCache.onFirstPage()) {
-      document.querySelector("#btn-astro-prev").removeAttribute("disabled")
-    }
-    if (!astroCache.onLastPage()) {
-      document.querySelector("#btn-astro-next").removeAttribute("disabled")
-    }
-  }
-  // disable the buttons 
-  else {
-    document.querySelector("#btn-astro-prev").setAttribute("disabled", true)
-    document.querySelector("#btn-astro-next").setAttribute("disabled", true)
-  }
-
-}
-
-function handleClickNext(event) {
-  astroCache.nextPage();
-
-}
-
-function handleClickPrev(event) {
-  astroCache.prevPage();
-
-}
-
-const assembly = function () {
-  // assembly() maintains mission parts in mission[] after user drags and drops
-  const mission = [];
+// mission() maintains mission parts in partsList[] after user drags and drops
+const mission = function () {
+  const partsList = [];
   return {
     add: (element) => {
-      console.log("MISSION:", mission)
+      console.log("MISSION:", partsList)
       // check first to see if the part is allowed
-      if (allowPart(mission, element.dataset.part)) {
-        mission.push({
+      if (allowPart(partsList, element.dataset.part)) {
+        partsList.push({
           id: element.dataset.id,
           part: element.dataset.part,
           name: element.dataset.name,
@@ -235,50 +266,23 @@ const assembly = function () {
         return false;
       }
     },
-    delete: (partName) => delete mission[partName],
-    show: () => mission,
-    // includes find() must use == as mission id is string, but value passed from render is number
-    includes: (partId) => mission.find(part => part.id == partId),
+    show: () => partsList,
+    // includes find() must use == as partsList id is string, but value passed from render is number
+    includes: (partId) => partsList.find(part => part.id == partId),
     reset: () => {
-      // make visible any parts hidden (that are in the mission)
+      // make visible any parts hidden (that are in the partsList)
       let row;
       while (row = document.querySelector(".row-hidden")) {
         row.classList.remove("row-hidden");
       }
-      mission.length = 0;
+      partsList.length = 0;
       document.querySelector(".mission-stack").innerHTML = "";
-      showStartMessage();
+      showStandardMessage();
     }
   }
 }();
 
-const showStartMessage = () => {
-  showMessage("notice", "To get started, drag a Rocket to the Vehicle Assembly Building to build a Mission.")
-}
-
-const showNotice = (part, partName) => {
-  if (partName === "Falcon Heavy") {
-    showMessage("notice", "Please note, the Falcon Heavy rocket requires 3 boosters");
-  }
-}
-
-const showMessage = (type, text) => {
-  const el = document.querySelector(".message");
-  el.textContent = text;
-  el.classList.remove("message-alert", "message-info", "message-notice");
-  switch (type) {
-    case "alert":
-      el.classList.add("message-alert");
-      break;
-    case "info":
-      el.classList.add("message-info");
-      break;
-    case "notice":
-      el.classList.add("message-notice")
-      break;
-  }
-}
-
+// allowPart() validates if the part is compatible with mission
 const allowPart = (mission, name) => {
   let rocketPart = partReady(mission, "rocket");
   switch (name) {
@@ -346,15 +350,12 @@ const allowPart = (mission, name) => {
       return false;
   }
   return true;
-
 }
 
+// allowPart helper functions
 const partReady = (mission, part) => mission.find(item => item.part === part);
-
 const starshipReady = (rocket) => rocket.name.toLowerCase() === "starship";
-
 const falconHeavyReady = (rocket) => rocket.name.toLowerCase() === "falcon heavy";
-
 const countAstronauts = (mission) => {
   let astroCount = mission.reduce(function (count, element) {
     element.part.toLowerCase() === "astronaut" ? count += 1 : null;
@@ -362,7 +363,6 @@ const countAstronauts = (mission) => {
   }, 0)
   return astroCount;
 }
-
 const threeBoosters = (mission) => {
   let boosterCount = mission.reduce(function (count, element) {
     element.part === "booster" ? count += 1 : null;
@@ -371,30 +371,59 @@ const threeBoosters = (mission) => {
   return boosterCount < 3 ? false : true;
 }
 
+/*
+configurator() filters mission parts after fetch mostly to make sure part has been used
+  in a prior launch. Thius was intended to be the only filtering but additional review 
+  of the API data reduced the significance of prior launches and required some additional 
+  criteria to be added. The goal is to try to ensure the app provides a realistic feel,
+  for example, don't list a booster that was destroyed in a prior launch or lost at sea.   
+*/
 const configurator = function () {
-  /*
-    configurator() filters mission parts so that user-interface lists  
-      rockets, boosters, etc. that appear practical for assembling a mission.  
-    I originally thought that it would be sufficient to select parts that were
-      used on prior missions, but after further research more filter critera
-      were needed.
-  */
   const priorLaunches = [];
   return {
     push: (launch) => priorLaunches.push(launch),
+    // exclude "falcon 1" which has an extremely low success rate 
     rocket: (collection) => collection.filter((item) => item.name != "Falcon 1"),
-    core: (collection) => {
-      return collection.filter((item) => {
-        return (item.status === "unknown" || item.status === "active")
-          && priorLaunches.find(launch => item.id === launch.coreId)
-      });
+    booster: (collection) => {
+      return collection.filter((item) =>
+        // include only active boosters that have been in a prior launch
+        (item.status === "unknown" || item.status === "active") && priorLaunches.find(launch => item.id === launch.coreId)
+      );
     },
+    // include only active capsules tyhat have prior water landings
     capsule: (collection) => collection.filter((item) => item.status === "active" && parseInt(item.water_landings, 10) > 0)
-    // astronaut: (collection) => collection.filter(item => item.status.name === "Active" && item.first_flight)
   }
-
 }();
 
+/* initPriorLaunches() supports confurator()  */
+const initPriorLaunches = (launches) => {
+  showAPIData ? console.log("LAUNCHES from API", launches) : null
+
+  for (const launch of launches) {
+    if (launch.success) {
+      const prior = {
+        launchId: launch.id,
+        capsule: launch.capsules.length ? launch.capsules[0] : null,
+        rocket: launch.rocket,
+        crew: launch.crew,
+        payloadsCount: launch.payloads.length,
+        launchpad: launch.launchpad,
+        flightNumber: launch.flight_number,
+      }
+      if (launch.cores.length) {
+        prior.coreId = launch.cores[0].core;
+        prior.coreFlightNumber = launch.cores[0].flight;
+        prior.coreReusedFlag = launch.cores[0].reused;
+      }
+      configurator.push(prior);
+    }
+  }
+}
+
+/* astroCache() provides caching and other logic for astronauts.
+  Eventually a future release of this app will require caching for all parts
+  as their volume increases with more launch activity.
+*/
 const astroCache = function () {
   const MAX_PAGE_SIZE = 20;
   const API_LIMIT = 100;
@@ -449,7 +478,7 @@ const astroCache = function () {
     nextPage: () => {
       toggleNavButtons(false);
       renderPage++;
-      if (!astroCache.isFullCache()) {
+      if (!astroCache.isFullCache() && renderPage > pages.length - 1) {
         astroCache.advanceCache();
         getAstronauts();
       } else {
@@ -466,41 +495,14 @@ const astroCache = function () {
       pages.forEach(page => console.log(`${page.offset} = ${page.astros[0].name}`))
     }
   }
-
 }();
 
-const initPriorLaunches = (launches) => {
-  /* 
-    Populate past launches to allow configuration of mission parts.
-    Include only successful launches.
-    Simplify the data structure, e.g. avoid arrays when array only has 1 element.
-  */
-  showAPIData ? console.log("LAUNCHES from API", launches) : null
 
-  for (const launch of launches) {
-    if (launch.success) {
-      const prior = {
-        launchId: launch.id,
-        capsule: launch.capsules.length ? launch.capsules[0] : null,
-        rocket: launch.rocket,
-        crew: launch.crew,
-        payloadsCount: launch.payloads.length,
-        launchpad: launch.launchpad,
-        flightNumber: launch.flight_number,
-      }
-      if (launch.cores.length) {
-        prior.coreId = launch.cores[0].core;
-        prior.coreFlightNumber = launch.cores[0].flight;
-        prior.coreReusedFlag = launch.cores[0].reused;
-      }
-      configurator.push(prior);
-    }
-  }
-}
-
+/* ++++ API interface +++ */
+// buildAstronautURL() defines test or live endpoint and filtering criteria
 const buildAstronautURL = () => {
   // api provides a testing endpoint with slightly stale data, use that when testing.
-  return url = `https://${apiTestMode ? "lldev" : "ll"}.thespacedevs.com/2.2.0/astronaut/?format=json`
+  return url = `https://${apiTestModeAstros ? "lldev" : "ll"}.thespacedevs.com/2.2.0/astronaut/?format=json`
     + "&active=1"   // this doesn't seem to work, so also do it on configurator
     + "&nationality=American"
     + "&ordering=name"
@@ -508,9 +510,9 @@ const buildAstronautURL = () => {
     + `&offset=${astroCache.nextOffset()}`;
 }
 
+// getAstronauts() is recursive since a single fetch does not get enough astros to fill the cache 
 const getAstronauts = () => {
-  // this needs to be recursive since a single fetch does not get enough astros
-  //   to fill the cache 
+  showMessage("alert", "Please wait, fetching astronauts ...")
   fetch(buildAstronautURL())
     .then(resp => resp.json())
     .then(result => {
@@ -520,21 +522,14 @@ const getAstronauts = () => {
       if (!astroCache.isFullPage() && result.next) {
         getAstronauts();
       } else {
+        showStandardMessage();
         renderAstronauts();
-        initHandlers();
       }
     });
-
-}
-
-const handleClickResetMission = () => {
-  assembly.reset();
-  while (!astroCache.onFirstPage()) {
-    astroCache.prevPage();
-  }
 }
 
 const fetchParts = () => {
+  showMessage("alert", "Please wait, fetching rocket parts ...")
   fetch(baseSpacexURL + "launches")
     .then(resp => resp.json())
     .then(result => {
@@ -544,7 +539,7 @@ const fetchParts = () => {
         .then(result => renderRockets(configurator.rocket(result)));
       fetch(baseSpacexURL + "cores")
         .then(resp => resp.json())
-        .then(result => renderCores(configurator.core(result)));
+        .then(result => renderBoosters(configurator.booster(result)));
       fetch(baseSpacexURL + "capsules")
         .then(resp => resp.json())
         .then(capsulesData => {
@@ -555,21 +550,18 @@ const fetchParts = () => {
       toggleNavButtons(false);
       getAstronauts();
     });
-
 }
 
 const initHandlers = () => {
-  showStartMessage();
   initDragDrop();
-  document.querySelector("#btn-astro-prev").addEventListener("click", handleClickPrev)
-  document.querySelector("#btn-astro-next").addEventListener("click", handleClickNext)
-  document.querySelector("#btn-reset-mission").addEventListener("click", handleClickResetMission);
-
+  document.querySelector("#btn-astro-prev").addEventListener("click", clickPrevHandler)
+  document.querySelector("#btn-astro-next").addEventListener("click", clickNextHandler)
+  document.querySelector("#btn-reset-mission").addEventListener("click", clickResetMissionHandler);
 }
 
-document.addEventListener("DOMContentLoaded", (e) => {
+document.addEventListener("DOMContentLoaded", () => {
   console.log("SPACEX base endpoint = ", baseSpacexURL + "launches")
   console.log("LAUNCH LIBRARY endpoint = ", buildAstronautURL(0))
   fetchParts();
-
+  initHandlers();
 })
