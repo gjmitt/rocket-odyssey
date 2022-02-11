@@ -1,25 +1,46 @@
 // Set apiTestMode... to false to use a test endpoint.
 // For rockets, boosters, and capsules, the test endpoint is a local json server.
 // For astronauts, the test endpoint is on Launch Library.
-const apiTestModeSpaceX = false;
+const apiTestModeSpaceX = true;
 const apiTestModeAstros = true;
 
 // Set showAPIData to console.log the result of each API fetch
 const showAPIData = false;
 const baseSpacexURL = apiTestModeSpaceX ? "http://localhost:3000/" : "https://api.spacexdata.com/v4/";
 
+const MAX_ASTRONAUTS = 3;   // only allow 3 astroanauts on a mission
+
 /* ++++ Messaging ++++ 
   Messages are shown at the top of the window to provide instructions,
   notices and alerts, etc.
 */
 const showStandardMessage = () => {
-  showMessage("notice", "Drag parts to the Vehicle Assembly Building to build a Mission.")
+  showMessage("info", "To build a Mission, drag parts (a rocket, booster(s), a capsule, and astronauts) to the Vehicle Assembly Building.")
 }
 
 const showNotice = (part, partName) => {
-  if (partName === "Falcon Heavy") {
-    showMessage("notice", "Please note, the Falcon Heavy rocket requires 3 boosters");
+  console.log(part, partName);
+  switch (part) {
+    case "rocket":
+      if (partName === "Falcon Heavy") {
+        showMessage("notice", "Please note, the Falcon Heavy rocket requires 3 boosters");
+        return;
+      }
+      break;
+    case "capsule":
+      if (partName.slice(0, 5) === "Cargo") {
+        showMessage("notice", "CONGRATULATIONS, You are ready to blast-off (Cargo Dragon has no seats for Astronauts)!");
+        return;
+      }
+      break;
+    case "astronaut":
+      if (mission.capsuleFull()) {
+        showMessage("notice", "CONGRATULATIONS, You are ready to blast-off!");
+        return;
+      }
+      break;
   }
+  showStandardMessage();
 }
 
 const showMessage = (type, text) => {
@@ -70,18 +91,22 @@ const dropHandler = (event) => {
   // add the part, then render it in the mission area
   if (mission.add(dropEl)) {
     renderMission(dropEl);
-    showStandardMessage();
   }
 }
 
 /* ++++ Button Handlers ++++ */
-const clickResetMissionHandler = () => {
+const clickResetHandler = () => {
   mission.reset();
   //* backup astronauts list to first page
   while (!astroCache.onFirstPage()) {
     astroCache.prevPage();
   }
 }
+
+const clickDeleteHandler = () => {
+  mission.deleteLastPart();
+}
+
 
 const clickNextHandler = (event) => {
   astroCache.nextPage();
@@ -115,8 +140,7 @@ const renderMission = (artifact) => {
   if (artifact.dataset.part === "booster") {
     // there are no images for boosters, so simply show booster name with rocket name  
     const div = document.querySelector(".mission-caption-rocket");
-    // div.textContent = `${div.textContent} + ${artifact.dataset.name}`
-    div.innerHTML = div.innerHTML + `<span class="booster-name">${artifact.dataset.name}</span>`
+    div.innerHTML = div.innerHTML + `<span class="booster-part">${artifact.dataset.name}</span>`
   }
   else {
     const div = document.createElement("div");
@@ -131,10 +155,11 @@ const renderMission = (artifact) => {
     div.append(captionDiv);
     document.querySelector(".mission-stack").append(div);
   }
-  // hide the row in the parts list
+  // hide the row in the parts list, show message, and enable mission buttons
   artifact.classList.add("row-hidden");
-  showNotice(artifact, artifact.dataset.name);
+  showNotice(artifact.dataset.part, artifact.dataset.name);
   document.querySelector("#btn-reset-mission").removeAttribute("disabled")
+  document.querySelector("#btn-delete-mission").removeAttribute("disabled")
 }
 
 const renderRockets = (rockets) => {
@@ -270,15 +295,26 @@ const mission = function () {
     // includes find() must use == as partsList id is string, but value passed from render is number
     includes: (partId) => partsList.find(part => part.id == partId),
     reset: () => {
-      // make visible any parts hidden (that are in the partsList)
-      let row;
-      while (row = document.querySelector(".row-hidden")) {
-        row.classList.remove("row-hidden");
-      }
-      partsList.length = 0;
-      document.querySelector(".mission-stack").innerHTML = "";
+      partsList.forEach(part => mission.unhidePart(part.id));    // make all parts visible 
+      partsList.length = 0;     // delete all parts
+      document.querySelector(".mission-stack").innerHTML = "";  // clear the DOM
       showStandardMessage();
-    }
+    },
+    capsuleFull: () => countAstronauts(partsList) === MAX_ASTRONAUTS,
+    deleteLastPart: () => {
+      // delete the last part picked for the mission 
+      // boosters have to be handled as a special case since they are part of the reocket
+      let deletedPart = partsList.pop();
+      let boosterOrMission = deletedPart.part === "booster" ? "booster" : "mission";
+      // remove the part from the DOM
+      Array.from(document.querySelectorAll(`.${boosterOrMission}-part`)).pop().remove();
+      // unhide the row in the list for that part
+      mission.unhidePart(deletedPart.id);
+      // remove it from the list
+    },
+    unhidePart: (partId) => {
+      document.querySelector(`[data-id="${partId}"]`).classList.remove("row-hidden")
+    },
   }
 }();
 
@@ -304,7 +340,7 @@ const allowPart = (mission, name) => {
         }
         if ((falconHeavyReady(rocketPart) && threeBoosters(mission))
           || (!falconHeavyReady(rocketPart) && partReady(mission, "booster"))) {
-          showMessage("alert", "No more boosters are needed for this mission!");
+          showMessage("alert", "No more boosters are needed for this rocket!");
           return false;
         }
       }
@@ -334,15 +370,17 @@ const allowPart = (mission, name) => {
       let capsulePart = partReady(mission, "capsule");
       if (capsulePart) {
         if (capsulePart.name.toLowerCase().includes("cargo")) {
+          // changed messaging logic, this message will never dispaly, 
+          // but left it in just in case we decide to use it later
           showMessage("alert", "Cargo Dragon has no seats for astronauts!");
           return false;
         }
       } else if (!rocketPart || !starshipReady(rocketPart)) {
-        showMessage("alert", "Please pick a capsule before you pick astronauts");
+        showMessage("alert", "Please pick a capsule before you pick astronauts.");
         return false;
       }
-      if (countAstronauts(mission) === 3) {
-        showMessage("alert", "Sorry, no more than 3 astronauts allowed per mission!");
+      if (countAstronauts(mission) === MAX_ASTRONAUTS) {
+        showMessage("alert", `Sorry, no more than ${MAX_ASTRONAUTS} astronauts allowed per mission!`);
         return false;
       }
       break;
@@ -556,7 +594,9 @@ const initHandlers = () => {
   initDragDrop();
   document.querySelector("#btn-astro-prev").addEventListener("click", clickPrevHandler)
   document.querySelector("#btn-astro-next").addEventListener("click", clickNextHandler)
-  document.querySelector("#btn-reset-mission").addEventListener("click", clickResetMissionHandler);
+  document.querySelector("#btn-reset-mission").addEventListener("click", clickResetHandler);
+  document.querySelector("#btn-delete-mission").addEventListener("click", clickDeleteHandler);
+
 }
 
 document.addEventListener("DOMContentLoaded", () => {
