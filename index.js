@@ -98,6 +98,16 @@ const dropHandler = (event) => {
   }
 }
 
+const clickRowHandler = (event) => {
+  if (event.target.nodeName === "TD") {
+    const id = event.target.parentElement.dataset.id;
+    const dropEl = document.querySelector(`[data-id="${id}"]`);
+    if (mission.add(dropEl)) {
+      renderMission(dropEl);
+    }
+  }
+}
+
 /*
 refreshAfterDrag() has been deprecated!
 It refreshes a table of parts, removing the hidden part that was just added to the mission. I coded this after seeing that on the Safari browser a gap was left in the table where the row was hidden; Chrome automatically removed that gap when the row was hidden.
@@ -193,18 +203,12 @@ const renderRockets = (rockets) => {
 }
 
 const renderRocket = (rocket, row) => {
+  initRow(row, "rocket", rocket.id, rocket.name, rocket.flickr_images[0]);
   row.innerHTML = `<td>${rocket.name}</td>`
     // + `<td>${rocket.cost_per_launch}</td>`
     + `<td>${rocket.engines.type}(${rocket.engines.number})</td>`
     + `<td>${rocket.first_flight}</td>`;
   //    + `<td>${rocket.success_rate_pct}</td>`;
-  row.dataset.part = "rocket";
-  row.dataset.id = rocket.id;
-  row.dataset.name = rocket.name;
-  row.dataset.image = rocket.flickr_images[0];
-  row.className = "rocket-row";
-  row.draggable = true;
-  row.addEventListener("dragstart", dragstartHandler);
 }
 
 const renderBoosters = (cores) => {
@@ -215,17 +219,11 @@ const renderBoosters = (cores) => {
 }
 
 const renderBooster = (item, row) => {
+  initRow(row, "booster", item.id, item.serial, null);
   row.innerHTML = `<td>${item.serial}</td>`
     + `<td>${item.reuse_count}</td>`
     // + `<td>${item.asds_landings}</td>`
     + `<td>${item.last_update}</td>`;
-  row.dataset.part = "booster";
-  row.dataset.id = item.id;
-  row.dataset.name = item.serial;
-  row.dataset.image = null;
-  row.className = "booster-row";
-  row.draggable = true;
-  row.addEventListener("dragstart", dragstartHandler);
 }
 
 const renderCapsules = (capsules, dragons) => {
@@ -242,22 +240,15 @@ const renderCapsules = (capsules, dragons) => {
 }
 
 const renderCapsule = (item, dragon, row) => {
-  /* Capsule combines attributes from 2 endpoints "capsule" and "dragons" 
-  */
+  // Capsule combines attributes from 2 endpoints "capsule" and "dragons" 
   let dragonType = `${dragon.crew_capacity > 0 ? "Crew" : "Cargo"} ${item.type}`
+  initRow(row, "capsule", item.id, `${dragonType} ${item.serial}`, dragon.flickr_images[0]);
   row.innerHTML = `<td>${dragonType}</td>`
     //    + `<td>${dragon.crew_capacity > 0 ? "crew" : "cargo"}</td>`
     //    + `<td>${dragon.first_flight}</td>`
     + `<td>${item.serial}</td>`
     + `<td>${item.launches.length}</td>`
     + `<td>${item.water_landings}</td>`;
-  row.dataset.id = item.id;
-  row.dataset.part = "capsule"
-  row.dataset.name = `${dragonType} ${item.serial}`
-  row.dataset.image = dragon.flickr_images[0];
-  row.className = "capsule-row";
-  row.draggable = true;
-  row.addEventListener("dragstart", dragstartHandler);
 }
 
 const renderAstronauts = () => {
@@ -268,29 +259,31 @@ const renderAstronauts = () => {
   astroCache.show().forEach(astronaut => {
     renderAstronaut(astronaut, tableBody.insertRow());
   })
-  // enable nav buttons
+  // enable nav buttons 
   toggleNavButtons(true);
 }
 
 const renderAstronaut = (item, row) => {
-  // for dates, only show the year, full date is really kind of meaningless, all we want to do is 
-  // give the user an idea of person's age and flight experience
+  // for dates, only show the year, full date is really kind of meaningless, all we want to do is give the user an idea of person's age and flight experience
+  initRow(row, "astronaut", item.id, item.name, item.profile_image)
   row.innerHTML = `<td>${item.name}</td>`
     + `<td>${item.date_of_birth.slice(0, 4)}</td>`
     + `<td>${item.first_flight.slice(0, 4)}</td>`
     + `<td>${item.last_flight.slice(0, 4)}</td>`;
-  row.dataset.part = "astronaut";
-  row.dataset.id = item.id;
-  row.dataset.name = item.name;
-  row.dataset.image = item.profile_image;
-  row.className = "astronaut-row";
-  row.draggable = true;
-  row.addEventListener("dragstart", dragstartHandler);
   // hide the row if astronaut is already included in mission
   if (mission.includes(item.id)) {
-    console.log("HIDE HIDE HIDE")
     row.classList.add("row-hidden");
   }
+}
+
+const initRow = (row, part, id, name, image) => {
+  row.dataset.part = part;
+  row.dataset.id = id;
+  row.dataset.name = name;
+  row.dataset.image = image;
+  row.className = `${part}-row`
+  row.draggable = true;
+//  row.addEventListener("dragstart", dragstartHandler);
 }
 
 // mission() maintains mission parts in partsList[] after user drags and drops
@@ -298,7 +291,6 @@ const mission = function () {
   const partsList = [];
   return {
     add: (element) => {
-      console.log("MISSION:", partsList)
       // check first to see if the part is allowed
       if (allowPart(partsList, element.dataset.part)) {
         partsList.push({
@@ -629,7 +621,8 @@ const initHandlers = () => {
   document.querySelector("#btn-astro-next").addEventListener("click", clickNextHandler)
   document.querySelector("#btn-reset-mission").addEventListener("click", clickResetHandler);
   document.querySelector("#btn-delete-mission").addEventListener("click", clickDeleteHandler);
-
+  document.querySelector(".main-container").addEventListener("click", clickRowHandler);
+  document.querySelector(".main-container").addEventListener("dragstart", dragstartHandler);  
 }
 
 document.addEventListener("DOMContentLoaded", () => {
