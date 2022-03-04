@@ -2,9 +2,15 @@
 <html lang="en">
 
 <head>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- google fonts: JetBrains Mono regular 400, regular 400 italic, bold 700 -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+  rel="stylesheet">
   <link rel="stylesheet" href="index.css" />
   <title>Rocket Odyssey</title>
 </head>
@@ -22,7 +28,7 @@
 
     <!-- start div parts-left-->
     <div class="parts-left">
-      <span class="listing-heading">Rockets</span>
+      <span class="list-heading">Rockets</span>
       <table id="rockets-table">
         <thead>
           <th>Name</th>
@@ -33,7 +39,7 @@
         </tbody>
       </table>
       <br>
-      <span class="listing-heading">Boosters</span>
+      <span class="list-heading">Boosters</span>
       <table id="cores-table">
         <thead>
           <th>Serial</th>
@@ -44,7 +50,7 @@
         </tbody>
       </table>
       <br>
-      <span class="listing-heading">Capsules</span>
+      <span class="list-heading">Capsules</span>
       <table id="capsules-table">
         <thead>
           <th>Type</th>
@@ -61,7 +67,7 @@
 
     <!-- start div mission -->
     <div class="mission">
-      <span class="listing-heading">Mission</span>
+      <span class="list-heading">Mission</span>
       <span><button id="btn-reset-mission" disabled>RESET</button></span>
       <span><button id="btn-delete-mission" disabled>DELETE</button></span>
       <div class="mission-stack"></div>
@@ -70,7 +76,7 @@
 
     <!-- start div parts-right -->
     <div class="parts-right">
-      <span class="listing-heading">Astronauts</span>
+      <span class="list-heading">Astronauts</span>
       <span>
         <button id="btn-astro-prev" disabled>PREV</button>
         <button id="btn-astro-next" disabled>NEXT</button>

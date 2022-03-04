@@ -5,7 +5,7 @@ const apiTestModeSpaceX = true;
 const apiTestModeAstros = true;
 
 // Set showAPIData to console.log the result of each API fetch
-const showAPIData = false;
+const showAPIData = true;
 const baseSpacexURL = apiTestModeSpaceX ? "http://localhost:3000/" : "https://api.spacexdata.com/v4/";
 
 const MAX_ASTRONAUTS = 3;   // only allow 3 astroanauts on a mission
@@ -59,6 +59,9 @@ const showMessage = (type, text) => {
     case "notice":
       el.classList.add("message-notice")
       break;
+    case "error":
+      el.classList.add("message-error")
+      break;    
   }
 }
 
@@ -105,8 +108,8 @@ const clickResetHandler = () => {
 
 const clickDeleteHandler = () => {
   mission.deleteLastPart();
+  showStandardMessage();
 }
-
 
 const clickNextHandler = (event) => {
   astroCache.nextPage();
@@ -313,7 +316,10 @@ const mission = function () {
       // remove it from the list
     },
     unhidePart: (partId) => {
-      document.querySelector(`[data-id="${partId}"]`).classList.remove("row-hidden")
+      // can only unhide a part if it is currently rendered, which may not be the case for 
+      //  an astronaut picked from another page in the cache that is not the current one shown
+      const el = document.querySelector(`[data-id="${partId}"]`);
+      el ? el.classList.remove("row-hidden") : null;
     },
   }
 }();
@@ -563,31 +569,39 @@ const getAstronauts = () => {
         showStandardMessage();
         renderAstronauts();
       }
+    })
+    .catch((error) => {
+      showMessage("error", `GET error: ${buildAstronautURL}`);
     });
 }
 
 const fetchParts = () => {
   showMessage("alert", "Please wait, fetching rocket parts ...")
   fetch(baseSpacexURL + "launches")
-    .then(resp => resp.json())
-    .then(result => {
-      initPriorLaunches(result);
-      fetch(baseSpacexURL + "rockets")
-        .then(resp => resp.json())
-        .then(result => renderRockets(configurator.rocket(result)));
-      fetch(baseSpacexURL + "cores")
-        .then(resp => resp.json())
-        .then(result => renderBoosters(configurator.booster(result)));
-      fetch(baseSpacexURL + "capsules")
-        .then(resp => resp.json())
-        .then(capsulesData => {
-          fetch(baseSpacexURL + "dragons")
-            .then(resp => resp.json())
-            .then(dragonsData => renderCapsules(configurator.capsule(capsulesData), dragonsData));
-        });
-      toggleNavButtons(false);
-      getAstronauts();
-    });
+  .then(resp => resp.json())
+  .then(result => {
+    initPriorLaunches(result);
+    fetch(baseSpacexURL + "rockets")
+      .then(resp => resp.json())
+      .then(result => renderRockets(configurator.rocket(result)));
+    fetch(baseSpacexURL + "cores")
+      .then(resp => resp.json())
+      .then(result => renderBoosters(configurator.booster(result)));
+    fetch(baseSpacexURL + "capsules")
+      .then(resp => resp.json())
+      .then(capsulesData => {
+        fetch(baseSpacexURL + "dragons")
+          .then(resp => resp.json())
+          .then(dragonsData => renderCapsules(configurator.capsule(capsulesData), dragonsData));
+      });
+    toggleNavButtons(false);
+    getAstronauts();
+  })
+  // most likely error is local json server not running, when in test mode
+  //  so only bothering to catch errors on the first fetch
+  .catch((error) => {
+    showMessage("error", `GET error: ${baseSpacexURL}`);
+  });
 }
 
 const initHandlers = () => {
@@ -605,3 +619,4 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchParts();
   initHandlers();
 })
+
