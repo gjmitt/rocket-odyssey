@@ -5,7 +5,7 @@ const apiTestModeSpaceX = true;
 const apiTestModeAstros = true;
 
 // Set showAPIData to console.log the result of each API fetch
-const showAPIData = true;
+const showAPIData = false;
 const baseSpacexURL = apiTestModeSpaceX ? "http://localhost:3000/" : "https://api.spacexdata.com/v4/";
 
 const MAX_ASTRONAUTS = 3;   // only allow 3 astroanauts on a mission
@@ -94,7 +94,26 @@ const dropHandler = (event) => {
   // add the part, then render it in the mission area
   if (mission.add(dropEl)) {
     renderMission(dropEl);
+//    refreshAfterDrag(dropEl.dataset.part);
   }
+}
+
+/*
+refreshAfterDrag() has been deprecated!
+It refreshes a table of parts, removing the hidden part that was just added to the mission. I coded this after seeing that on the Safari browser a gap was left in the table where the row was hidden; Chrome automatically removed that gap when the row was hidden.
+refreshAfterDrag() works perfectly, except that when the user Resets or Deletes, the data for that hidden row no longer exists!
+I discovered a better way to resolve the Safari issue - instead of hiding rows using the visibility property, use display: none - see row-hidden in index.css  
+*/
+const refreshAfterDrag = (partName) => {
+  // partName is rocket, booster, etc. table an id partName-body 
+  const tableBody = document.querySelector(`#${partName}s-body`);
+  let rows = Array.from(tableBody.rows);
+  tableBody.innerHTML = "";
+  rows.forEach(row => 
+    row.classList.contains("row-hidden")
+    ? null
+    : tableBody.append(row)
+  );
 }
 
 /* ++++ Button Handlers ++++ */
@@ -190,7 +209,7 @@ const renderRocket = (rocket, row) => {
 
 const renderBoosters = (cores) => {
   showAPIData ? console.log("CORES from API", cores) : null;
-  const tableBody = document.querySelector("#cores-body");
+  const tableBody = document.querySelector("#boosters-body");
   tableBody.innerHTML = "";
   cores.forEach(core => renderBooster(core, tableBody.insertRow()));
 }
@@ -244,7 +263,7 @@ const renderCapsule = (item, dragon, row) => {
 const renderAstronauts = () => {
   astroCache.logStatus("renderAstronauts()");
   showAPIData ? console.log("ASTRONAUTS from API", astroCache.show()) : null;
-  const tableBody = document.querySelector("#astros-body");
+  const tableBody = document.querySelector("#astronauts-body");
   tableBody.innerHTML = "";
   astroCache.show().forEach(astronaut => {
     renderAstronaut(astronaut, tableBody.insertRow());
