@@ -35,7 +35,7 @@ https://api.spacexdata.com/v4/<br>
 ## Test Mode
 Test mode is used to avoid 429 errors "Too many requests" (rate limiting).<br>
 If you are using test mode, make sure to start your json server:<br>
-json-server --watch rocket-odyssey-test.json
+json-server --watch rocket-odyssey-test.json (Note that this test json file is excluded from the repo, you would have to create your own)
 
 ## Limitations
 Rocket Odyssey attempts to convey a realistic experience assembling a space rocket mission. In some cases the data from the APIs has been adjusted for practical purposes. For example, the Rockets selection excludes Falcon 1 by selecting only rockets with 1st stages that are reusable, which was the only way to exclude Falcon 1 but include Starship. Startship ends up being included, even though it is not ready yet for flight, but provides an interesting level of excitement. Starship is kind of a hybrid vehicle and in the real world requires a Falcon Heavy to launch, but for simplicity, this app does not require the Falcon Heavy rocket for Starship. Astronauts are limited to nationality = "American" to keep the list shorter.

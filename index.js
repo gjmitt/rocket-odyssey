@@ -267,7 +267,7 @@ const renderAstronaut = (item, row) => {
   // for dates, only show the year, full date is really kind of meaningless, all we want to do is give the user an idea of person's age and flight experience
   initRow(row, "astronaut", item.id, item.name, item.profile_image)
   row.innerHTML = `<td>${item.name}</td>`
-    + `<td>${item.date_of_birth.slice(0, 4)}</td>`
+    + `<td>${item.date_of_birth ? item.date_of_birth.slice(0, 4) : ""}</td>`
     + `<td>${item.first_flight.slice(0, 4)}</td>`
     + `<td>${item.last_flight.slice(0, 4)}</td>`;
   // hide the row if astronaut is already included in mission
@@ -582,7 +582,7 @@ const getAstronauts = () => {
       }
     })
     .catch((error) => {
-      showMessage("error", `GET error: ${buildAstronautURL}`);
+      showMessage("error", `getAstronauts() error: ${error}`);
     });
 }
 
@@ -631,4 +631,3 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchParts();
   initHandlers();
 })
-
